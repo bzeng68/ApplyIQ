@@ -16,8 +16,8 @@ Si el input es una **URL** (no texto de JD pegado), seguir esta estrategia para 
 
 **Si el input es texto de JD** (no URL): usar directamente, sin necesidad de fetch.
 
-## Paso 1 — Evaluación A-G
-Ejecutar exactamente igual que el modo `oferta` (leer `modes/oferta.md` para todos los bloques A-F + Block G Posting Legitimacy).
+## Paso 1 — Evaluación A, B, C y G
+Ejecutar exactamente igual que el modo `oferta` (leer `modes/oferta.md` para los bloques A, B, C y G).
 
 ## Paso 2 — Guardar resumen compacto
 Append a single row to `data/evaluations.md` with: date, company, role, score, legitimacy, and one-line reason.
