@@ -4,7 +4,7 @@ Cuando el candidato pega una oferta (texto o URL), entregar SIEMPRE los 4 bloque
 
 ## Paso 0 — Detección de Arquetipo
 
-Clasificar la oferta en uno de los 6 arquetipos (ver `_shared.md`). Si es híbrido, indicar los 2 más cercanos. Esto determina:
+Clasificar la oferta en uno de los 6 arquetipos (ver `modes/_shared-scoring.md` para la tabla completa). Si es híbrido, indicar los 2 más cercanos. Esto determina:
 - Qué proof points priorizar en bloque B
 - Cómo enmarcar la estrategia de nivel en bloque C
 - Cómo evaluar la legitimidad del posting en bloque G

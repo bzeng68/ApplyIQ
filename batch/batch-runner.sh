@@ -4,6 +4,16 @@ set -euo pipefail
 # career-ops batch runner — standalone orchestrator for claude -p workers
 # Reads batch-input.tsv, delegates each offer to a claude -p worker,
 # tracks state in batch-state.tsv for resumability.
+#
+# OPTIMIZATIONS (OPT-1, OPT-2, OPT-3):
+# - OPT-1: batch-prompt.md now contains A-B-C-G blocks only (removed D/E/F)
+#   Savings: ~31K-57K tokens per batch run
+# - OPT-2: Two-phase screening available via batch-worker.mjs --phase quick-screen
+#   Savings: ~28K-40K tokens per batch (40% filter rate)
+# - OPT-3: Use 'node batch/batch-worker.mjs' instead of 'claude -p' for SDK + caching
+#   Savings: ~28K tokens per batch (80% cache hit on system prompt)
+#
+# For OPT-3 full integration, replace claude -p invocations with batch-worker.mjs.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -48,9 +58,11 @@ Options:
 Files:
   batch-input.tsv      Input offers (id, url, source, notes)
   batch-state.tsv      Processing state (auto-managed)
-  batch-prompt.md      Prompt template for workers
-  logs/                Per-offer logs
-  tracker-additions/   Tracker lines for post-batch merge
+  batch-prompt.md      Optimized prompt (OPT-1: A-B-C-G only, 240 lines, ~2.8K tokens)
+  batch-worker.mjs     Alternative SDK-based worker (OPT-3: with prompt caching)
+
+NOTE: For better performance (OPT-3 prompt caching), use:
+  node batch/batch-worker.mjs <id> <url> <jd_file> <report_num> <date>
 
 Examples:
   # Dry run to see pending offers
