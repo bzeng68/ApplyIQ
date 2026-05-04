@@ -16,6 +16,7 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import { execSync } from 'child_process';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -166,6 +167,15 @@ function reportTokenLog() {
     return;
   }
 
+  // Ensure incremental aggregate is up-to-date
+  try {
+    if (fs.existsSync('aggregate-token-log.mjs')) {
+      execSync('node aggregate-token-log.mjs', { stdio: 'ignore' });
+    }
+  } catch (e) {
+    // Non-fatal
+  }
+
   const lines = fs.readFileSync(logFile, "utf8").trim().split("\n");
   const entries = lines.map((line) => JSON.parse(line));
 
@@ -204,6 +214,32 @@ function reportTokenLog() {
 
   const savedByCache = totalCacheRead * 0.9 * (15 / 1000000); // 90% savings on cache reads
   console.log(`  Saved by cache: ~$${savedByCache.toFixed(2)}`);
+
+  // Print short aggregate summary if available
+  try {
+    const aggPath = 'reports/token-aggregate.json';
+    if (fs.existsSync(aggPath)) {
+      const agg = JSON.parse(fs.readFileSync(aggPath, 'utf8'));
+      const days = agg.length;
+      const last = agg[agg.length - 1];
+      console.log('\n📦 Aggregate summary (reports/token-aggregate.json)');
+      console.log(`  Days tracked: ${days}`);
+      if (last) {
+        console.log(`  Latest day: ${last.date} — offers: ${last.offers}, input_tokens: ${last.input_tokens.toLocaleString()}, estimated_cost_haiku: $${last.estimated_cost_haiku}`);
+      }
+    }
+  } catch (e) {
+    // ignore
+  }
+
+  // Use incremental aggregator (aggregate-token-log.mjs) to build/update
+  try {
+    if (fs.existsSync('aggregate-token-log.mjs')) {
+      execSync('node aggregate-token-log.mjs', { stdio: 'inherit' });
+    }
+  } catch (e) {
+    console.log('⚠️  aggregate-token-log.mjs failed:', e.message);
+  }
 }
 
 // Run the audit
