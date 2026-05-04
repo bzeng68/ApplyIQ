@@ -6,11 +6,10 @@ Procesa URLs de ofertas acumuladas en `data/pipeline.md`. El usuario agrega URLs
 
 1. **Leer** `data/pipeline.md` → buscar items `- [ ]` en la sección "Pendientes"
 2. **Para cada URL pendiente**:
-   a. Calcular siguiente `REPORT_NUM` secuencial (leer `reports/`, tomar el número más alto + 1)
-   b. **Extraer JD** usando Playwright (browser_navigate + browser_snapshot) → WebFetch → WebSearch
-   c. Si la URL no es accesible → marcar como `- [!]` con nota y continuar
-   d. **Ejecutar auto-pipeline completo**: Evaluación A-F → Report .md → PDF (si score >= 3.0) → Tracker
-   e. **Mover de "Pendientes" a "Procesadas"**: `- [x] #NNN | URL | Empresa | Rol | Score/5 | PDF ✅/❌`
+   a. **Extraer JD** usando Playwright (browser_navigate + browser_snapshot) → WebFetch → WebSearch
+   b. Si la URL no es accesible → marcar como `- [!]` con nota y continuar
+   c. **Ejecutar auto-pipeline de solo evaluación**: Evaluación A-F + Block G, luego detenerse
+   d. **No generar report, PDF ni tracker line** a menos que el usuario lo pida explícitamente
 3. **Si hay 3+ URLs pendientes**, lanzar agentes en paralelo (Agent tool con `run_in_background`) para maximizar velocidad.
 4. **Al terminar**, mostrar tabla resumen:
 
@@ -55,3 +54,7 @@ Antes de procesar cualquier URL, verificar sync:
 node cv-sync-check.mjs
 ```
 Si hay desincronización, advertir al usuario antes de continuar.
+
+## Default Scope
+
+For this profile, the pipeline stops after scraping + evaluation unless the user explicitly asks to persist report, PDF, or tracker updates.

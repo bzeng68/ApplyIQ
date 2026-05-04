@@ -2,6 +2,7 @@
 cv.md
 data/applications.md
 data/pipeline.md
+data/evaluations.md
 data/scan-history.tsv
 reports/*.md
 !reports/.gitkeep

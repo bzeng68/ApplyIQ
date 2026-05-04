@@ -66,86 +66,28 @@ Top 5 cambios al CV + Top 5 cambios a LinkedIn para maximizar match.
 
 6-10 historias STAR+R mapeadas a requisitos del JD (STAR + **Reflection**):
 
-| # | Requisito del JD | Historia STAR+R | S | T | A | R | Reflection |
-|---|-----------------|-----------------|---|---|---|---|------------|
+### 1. Guardar resumen compacto
 
-The **Reflection** column captures what was learned or what would be done differently. This signals seniority — junior candidates describe what happened, senior candidates extract lessons.
+Guardar una fila en `data/evaluations.md` con estos campos:
+- Fecha actual
+- Empresa
+- Rol
+- Score (1-5)
+- Legitimacy
+- One-line reason
 
-**Story Bank:** If `interview-prep/story-bank.md` exists, check if any of these stories are already there. If not, append new ones. Over time this builds a reusable bank of 5-10 master stories that can be adapted to any interview question.
+**One-line reason** should answer: why this score, or why this role/company is or is not a fit.
 
-**Seleccionadas y enmarcadas según el arquetipo:**
-- FDE → enfatizar velocidad de entrega y client-facing
-- SA → enfatizar decisiones de arquitectura
-- PM → enfatizar discovery y trade-offs
-- LLMOps → enfatizar métricas, evals, production hardening
-- Agentic → enfatizar orchestration, error handling, HITL
-- Transformation → enfatizar adopción, cambio organizacional
+### 2. No full artifacts by default
 
-Incluir también:
-- 1 case study recomendado (cuál de sus proyectos presentar y cómo)
-- Preguntas red-flag y cómo responderlas (ej: "¿por qué vendiste tu empresa?", "¿tienes equipo de reports?")
-
-## Bloque G — Posting Legitimacy
-
-Analyze the job posting for signals that indicate whether this is a real, active opening. This helps the user prioritize their effort on opportunities most likely to result in a hiring process.
-
-**Ethical framing:** Present observations, not accusations. Every signal has legitimate explanations. The user decides how to weigh them.
-
-### Signals to analyze (in order):
-
-**1. Posting Freshness** (from Playwright snapshot, already captured in Paso 0):
-- Date posted or "X days ago" -- extract from page
-- Apply button state (active / closed / missing / redirects to generic page)
-- If URL redirected to generic careers page, note it
-
-**2. Description Quality** (from JD text):
-- Does it name specific technologies, frameworks, tools?
-- Does it mention team size, reporting structure, or org context?
-- Are requirements realistic? (years of experience vs technology age)
-- Is there a clear scope for the first 6-12 months?
-- Is salary/compensation mentioned?
-- What ratio of the JD is role-specific vs generic boilerplate?
-- Any internal contradictions? (entry-level title + staff requirements, etc.)
-
-**3. Company Hiring Signals** (2-3 WebSearch queries, combine with Block D research):
-- Search: `"{company}" layoffs {year}` -- note date, scale, departments
-- Search: `"{company}" hiring freeze {year}` -- note any announcements
-- If layoffs found: are they in the same department as this role?
-
-**4. Reposting Detection** (from scan-history.tsv):
-- Check if company + similar role title appeared before with a different URL
-- Note how many times and over what period
-
-**5. Role Market Context** (qualitative, no additional queries):
-- Is this a common role that typically fills in 4-6 weeks?
-- Does the role make sense for this company's business?
-- Is the seniority level one that legitimately takes longer to fill?
-
-### Output format:
-
-**Assessment:** One of three tiers:
-- **High Confidence** -- Multiple signals suggest a real, active opening
-- **Proceed with Caution** -- Mixed signals worth noting
-- **Suspicious** -- Multiple ghost job indicators, investigate before investing time
-
-**Signals table:** Each signal observed with its finding and weight (Positive / Neutral / Concerning).
-
-**Context Notes:** Any caveats (niche role, government job, evergreen position, etc.) that explain potentially concerning signals.
-
-### Edge case handling:
-- **Government/academic postings:** Longer timelines are standard. Adjust thresholds (60-90 days is normal).
-- **Evergreen/continuous hire postings:** If the JD explicitly says "ongoing" or "rolling," note it as context -- this is not a ghost job, it is a pipeline role.
-- **Niche/executive roles:** Staff+, VP, Director, or highly specialized roles legitimately stay open for months. Adjust age thresholds accordingly.
-- **Startup / pre-revenue:** Early-stage companies may have vague JDs because the role is genuinely undefined. Weight description vagueness less heavily.
-- **No date available:** If posting age cannot be determined and no other signals are concerning, default to "Proceed with Caution" with a note that limited data was available. NEVER default to "Suspicious" without evidence.
-- **Recruiter-sourced (no public posting):** Freshness signals unavailable. Note that active recruiter contact is itself a positive legitimacy signal.
-
+No generar report completo, PDF, respuestas de formulario, ni tracker row salvo que el usuario lo pida explícitamente.
 ---
 
 ## Post-evaluación
 
 **SIEMPRE** después de generar los bloques A-G:
 
+<!--
 ### 1. Guardar report .md
 
 Guardar evaluación completa en `reports/{###}-{company-slug}-{YYYY-MM-DD}.md`.
@@ -214,3 +156,8 @@ Guardar evaluación completa en `reports/{###}-{company-slug}-{YYYY-MM-DD}.md`.
 ```markdown
 | # | Fecha | Empresa | Rol | Score | Estado | PDF | Report |
 ```
+-->
+
+### Stop After Evaluation
+
+For this profile, stop after generating blocks A-G. Do not save a report, do not write a tracker row, and do not generate a PDF unless the user explicitly asks for those follow-up steps.
