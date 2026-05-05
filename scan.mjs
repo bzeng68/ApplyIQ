@@ -134,6 +134,49 @@ function buildTitleFilter(titleFilter) {
   };
 }
 
+// ── Location filter ──────────────────────────────────────────────────
+
+function buildLocationFilter(locationFilter) {
+  const allow = (locationFilter?.allow || []).map(k => k.toLowerCase());
+  const denyPatterns = (locationFilter?.deny_patterns || []).map(k => k.toLowerCase());
+  const remoteOk = locationFilter?.remote_ok !== false; // default: true
+
+  return (location) => {
+    if (!location || location.trim() === '') {
+      // Empty location — default to pass (assume remote/flexible)
+      return true;
+    }
+
+    const lower = location.toLowerCase();
+
+    // Check deny patterns first (highest priority)
+    if (denyPatterns.some(p => lower.includes(p))) {
+      return false;
+    }
+
+    // Check if it's a remote role
+    const isRemote = lower.includes('remote') || lower.includes('wfh') || lower.includes('work from home');
+
+    // If remote is OK, pass
+    if (isRemote && remoteOk) {
+      return true;
+    }
+
+    // Check allow list
+    if (allow.some(p => lower.includes(p))) {
+      return true;
+    }
+
+    // If remote but remote_ok is false, fail
+    if (isRemote && !remoteOk) {
+      return false;
+    }
+
+    // Not in allow list and not remote
+    return false;
+  };
+}
+
 // ── Dedup ───────────────────────────────────────────────────────────
 
 function loadSeenUrls() {
@@ -264,6 +307,7 @@ async function main() {
   const config = parseYaml(readFileSync(PORTALS_PATH, 'utf-8'));
   const companies = config.tracked_companies || [];
   const titleFilter = buildTitleFilter(config.title_filter);
+  const locationFilter = buildLocationFilter(config.location_filter);
 
   // 2. Filter to enabled companies with detectable APIs
   const targets = companies
@@ -298,6 +342,10 @@ async function main() {
 
       for (const job of jobs) {
         if (!titleFilter(job.title)) {
+          totalFiltered++;
+          continue;
+        }
+        if (!locationFilter(job.location)) {
           totalFiltered++;
           continue;
         }

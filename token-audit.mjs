@@ -51,10 +51,8 @@ function analyzeFile(filePath) {
  */
 function runAudit() {
   const files = {
-    "batch/batch-prompt-opt1.md": "OPT-1 optimized batch prompt (A-B-C-G only)",
-    "batch/batch-prompt-quick-screen.md": "OPT-2 quick-screen phase 1 prompt",
-    "batch/batch-worker.mjs": "OPT-3 batch worker with SDK + caching",
-    "modes/_shared.md": "Canonical shared rules (DEPRECATED - split into 3)",
+    "batch/batch-prompt.md": "Batch prompt (A-B-C-G only, OPT-1 applied)",
+    "modes/_shared.md": "Canonical shared rules (full file — split into 3 for OPT-5)",
     "modes/_shared-core.md": "Shared core rules (OPT-5 split)",
     "modes/_shared-scoring.md": "Shared scoring rules (OPT-5 split)",
     "modes/_shared-writing.md": "Shared writing rules (OPT-5 split)",
@@ -89,8 +87,7 @@ function runAudit() {
 
   const modes = {
     "Interactive Evaluation (oferta)": ["modes/_shared-core.md", "modes/_shared-scoring.md", "modes/oferta.md", "cv.md", "config/profile.yml"],
-    "Batch Evaluation (OPT-1 + OPT-3)": ["batch/batch-prompt-opt1.md", "cv.md"],
-    "Quick Screen (OPT-2)": ["batch/batch-prompt-quick-screen.md", "cv.md"],
+    "Batch Evaluation (claude -p worker)": ["batch/batch-prompt.md", "cv.md"],
   };
 
   for (const [modeName, filePaths] of Object.entries(modes)) {

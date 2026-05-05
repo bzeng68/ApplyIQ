@@ -8,7 +8,7 @@ set -euo pipefail
 # OPTIMIZATIONS (OPT-1, OPT-2, OPT-3):
 # - OPT-1: batch-prompt.md now contains A-B-C-G blocks only (removed D/E/F)
 #   Savings: ~31K-57K tokens per batch run
-# - OPT-2: Two-phase screening available via batch-worker.mjs --phase quick-screen
+# - OPT-2: Two-phase screening is the default — quick-screen runs first, full eval only if score >= 3.0
 #   Savings: ~28K-40K tokens per batch (40% filter rate)
 # - OPT-3: Use 'node batch/batch-worker.mjs' instead of 'claude -p' for SDK + caching
 #   Savings: ~28K tokens per batch (80% cache hit on system prompt)
@@ -343,35 +343,12 @@ process_offer() {
 
   local log_file="$LOGS_DIR/${report_num}-${id}.log"
 
-  # Prepare system prompt with placeholders resolved
-  local resolved_prompt="$BATCH_DIR/.resolved-prompt-${id}.md"
-  # Escape sed delimiter characters in variables to prevent substitution breakage
-  local esc_url esc_jd_file esc_report_num esc_date esc_id
-  esc_url="${url//\\/\\\\}"
-  esc_url="${esc_url//|/\\|}"
-  esc_jd_file="${jd_file//\\/\\\\}"
-  esc_jd_file="${esc_jd_file//|/\\|}"
-  esc_report_num="${report_num//|/\\|}"
-  esc_date="${date//|/\\|}"
-  esc_id="${id//|/\\|}"
-  sed \
-    -e "s|{{URL}}|${esc_url}|g" \
-    -e "s|{{JD_FILE}}|${esc_jd_file}|g" \
-    -e "s|{{REPORT_NUM}}|${esc_report_num}|g" \
-    -e "s|{{DATE}}|${esc_date}|g" \
-    -e "s|{{ID}}|${esc_id}|g" \
-    "$PROMPT_FILE" > "$resolved_prompt"
-
-  # Launch claude -p worker (uses default model from Claude Max subscription)
+  # OPT-3: SDK worker with prompt caching (batch-worker.mjs)
+  # Handles JD fetching, Anthropic API call with cache_control, report + tracker writes
   local exit_code=0
-  claude -p \
-    --dangerously-skip-permissions \
-    --append-system-prompt-file "$resolved_prompt" \
-    "$prompt" \
+  node "$PROJECT_DIR/batch/batch-worker.mjs" \
+    "$id" "$url" "$jd_file" "$report_num" "$date" \
     > "$log_file" 2>&1 || exit_code=$?
-
-  # Cleanup resolved prompt
-  rm -f "$resolved_prompt"
 
   local completed_at
   completed_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)

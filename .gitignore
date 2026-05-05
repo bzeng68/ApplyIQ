@@ -5,6 +5,7 @@ data/pipeline.md
 data/evaluations.md
 data/scan-history.tsv
 reports/*.md
+reports/*.json
 !reports/.gitkeep
 output/*
 !output/.gitkeep

@@ -45,8 +45,7 @@ Two recent commits (`d02c9e8`, `5e10a07`) pruned the interactive evaluation pipe
 
 | Decision | Choice |
 |----------|--------|
-| Pre-screened offers (OPT-2) | Write a minimal SKIP report with quick score + top gap noted |
-| SDK migration approach | Full migration — replace `batch-runner.sh` with Node.js + Anthropic SDK |
+| SDK migration / API billing | No — keep `claude -p` workers; uses Claude Max plan, no separate API bill |
 | Batch API latency tolerance | No — keep real-time; skip Batch API (OPT-4) |
 | Implementation order | All at once in a single pass |
 
@@ -76,43 +75,21 @@ Beyond the block alignment, the file contains compressible boilerplate:
 
 ---
 
-### OPT-2 — Two-Phase Evaluation (Highest Impact)
+### ~~OPT-2 — Two-Phase Evaluation~~ (Skipped)
 
-**What:** Currently every offer gets the full A-G evaluation regardless of fit. A quick pre-screen (Blocks A+B only: archetype detection + CV match) can filter out low-scoring offers before spending tokens on compensation research (Block D uses WebSearch), STAR stories (Block F), and interview prep.
-
-**How:** Add a `quick-screen` mode or a conditional in `batch-runner.sh`:
-1. Phase 1: Run a lightweight prompt — just Blocks A+B. ~3,000 tokens. Output a preliminary score.
-2. If score ≤ 3.2 → write `SKIP` report, skip Blocks C-G entirely.
-3. If score > 3.2 → continue to full evaluation.
-
-Historical data: CLAUDE.md notes the threshold for recommending against applying is 3.5. Assuming ~40% of offers score ≤ 3.2 (conservative), this filters out those offers entirely after Phase 1.
-
-**Savings estimate (per batch run of 10 offers, assuming 40% filter rate):**
-- 4 offers stopped at Phase 1: save ~7,000–10,000 tokens each = **28,000–40,000 tokens**
-- 6 offers complete full evaluation (unchanged)
-- Net batch savings: **25–35% reduction**
-- Risk: medium — requires new phase-1 prompt + state logic in `batch-runner.sh`
+**Decision:** Requires Anthropic SDK (separate API billing). Skipped — batch runs on `claude -p` workers via Claude Max plan.
 
 ---
 
-### OPT-3 — Anthropic SDK + Prompt Caching (Structural Win)
+### ~~OPT-3 — Anthropic SDK + Prompt Caching~~ (Skipped)
 
-**What:** `batch-runner.sh` invokes `claude -p --append-system-prompt-file` for each worker. This means `batch-prompt.md` is sent fresh every time — no caching is possible with the CLI. The Anthropic SDK supports `cache_control: {"type": "ephemeral"}` on system prompt blocks, enabling a 90% cache discount on subsequent reads within a 5-minute window.
-
-**How:** Replace `claude -p` with a Node.js script that uses the Anthropic SDK (`@anthropic-ai/sdk`). Mark `batch-prompt.md` content as a cacheable system prompt block. Workers launched within 5 minutes of each other (standard for parallel batch runs) share the cache.
-
-**Savings estimate:**
-- Cache hit discount: ~90% reduction on cached tokens (charged at 10% of normal input rate)
-- `batch-prompt.md`: 3,500 tokens. First worker: full price. Each subsequent worker: 350 tokens.
-- At 10 workers: `3,500 + 9×350 = 6,650` tokens vs. `10×3,500 = 35,000` tokens
-- **Savings: ~28,000 tokens per 10-worker batch run (~80% reduction on system prompt)**
-- Risk: medium — requires migrating `batch-runner.sh` orchestration from bash to Node.js SDK
+**Decision:** Would require separate Anthropic API billing. `claude -p` workers use Claude Max subscription with no additional cost. Skipped.
 
 ---
 
 ### ~~OPT-4 — Anthropic Batch API~~ (Skipped)
 
-**Decision:** Real-time results required. Batch API's up to 24-hour latency is not acceptable for this workflow. Skipped entirely — OPT-3 (prompt caching) still provides the main SDK-level savings without the latency trade-off.
+**Decision:** Real-time results required. Also would require separate API billing.
 
 ---
 
@@ -124,11 +101,11 @@ Historical data: CLAUDE.md notes the threshold for recommending against applying
 - Scoring system table (~20 lines) — relevant only during evaluation
 
 **How:** Split `_shared.md` into:
-- `_shared-core.md` (~100 lines) — always loaded: global rules, data sources, ethical use
-- `_shared-scoring.md` (~80 lines) — load for: `oferta`, `ofertas`, `batch`, `pipeline`
-- `_shared-writing.md` (~60 lines) — load for: `pdf`, `apply`, `contacto`
+- `_shared-core.md` (~70 lines) — always loaded: global rules, data sources, tools
+- `_shared-scoring.md` (~70 lines) — load for: `oferta`, `ofertas`, `batch`, `pipeline`
+- `_shared-writing.md` (~110 lines) — load for: `pdf`, `apply`, `contacto`
 
-SKILL.md already controls which mode files are loaded — adding conditional `_shared` sections is a small extension.
+SKILL.md controls which mode files are loaded — OPT-5 adds conditional `_shared` sections.
 
 **Savings estimate:**
 - For non-generation modes (`tracker`, `deep`, `patterns`, `followup`, `scan`): save ~1,500–2,000 tokens per invocation
@@ -168,15 +145,13 @@ All optimizations in a single pass. OPT-MEASURE runs before and after to capture
 | 1 | OPT-1 | Align + compress batch-prompt.md | Low (2–3h) | ~31,000–57,000 | Low |
 | 2 | OPT-6 | Deduplicate language _shared | Low (1h) | 0 (maintenance) | Low |
 | 3 | OPT-5 | Lazy-load _shared sections | Medium (2–3h) | ~1,500/call | Low |
-| 4 | OPT-2 | Two-phase evaluation + SKIP report | Medium (4–6h) | ~28,000–40,000 | Medium |
-| 5 | OPT-3 | Full SDK migration + Prompt Caching | High (1–2d) | ~28,000 system prompt | Medium |
-| — | ~~OPT-4~~ | ~~Batch API~~ | — | Skipped (latency) | — |
+| — | ~~OPT-2~~ | ~~Two-phase evaluation~~ | — | Skipped (requires API billing) | — |
+| — | ~~OPT-3~~ | ~~SDK + Prompt Caching~~ | — | Skipped (requires API billing) | — |
+| — | ~~OPT-4~~ | ~~Batch API~~ | — | Skipped (requires API billing) | — |
 | — | ~~OPT-7~~ | ~~Conditional Block F~~ | — | Superseded by OPT-1 | — |
 
 **Combined savings estimate (all implemented, 10-offer batch run):**
 - OPT-1 alone: ~31,000–57,000 tokens (block removal + compression)
-- OPT-1 + OPT-2: ~59,000–97,000 tokens (~55–65% reduction vs. current batch baseline)
-- With OPT-3 prompt caching: **~65–75% total reduction**
 - Interactive mode (OPT-5): additional ~1,500–2,000 tokens per non-evaluation call
 
 ---
@@ -192,34 +167,6 @@ All optimizations in a single pass. OPT-MEASURE runs before and after to capture
 - **Remove Block E/F table example scaffolding** (~8 lines of header examples)
 - Target: reduce from 378 → ~240 lines; output per offer drops ~2,500–4,500 tokens (no WebSearch, no rewrite plan, no STAR table)
 
-### OPT-2: Phase 1 prompt sketch + SKIP report format
-```
-Read cv.md and the JD. Identify the archetype and compute a quick match score (1-5).
-Output ONLY: {"archetype": "...", "quick_score": X.X, "top_gap": "..."}
-No other output.
-```
-~200 tokens system prompt. Score ≤ 3.2 → write SKIP report and exit. Score > 3.2 → invoke full worker.
-
-SKIP report format (`reports/{num}-{slug}-{date}.md`):
-```markdown
-# {Company} — {Role} (SKIP)
-
-**Score:** {quick_score}/5  
-**Status:** SKIP  
-**Reason:** Pre-screen score below threshold (3.2)  
-**Top gap:** {top_gap}  
-**Archetype:** {archetype}
-
-*Full evaluation not run. Re-evaluate manually if context changes.*
-```
-
-TSV tracker line still written as normal (status = `SKIP`).
-
-### OPT-3: SDK migration path
-1. Create `batch/batch-worker.mjs` — takes offer metadata as CLI args, uses Anthropic SDK
-2. Read `batch-prompt.md` once at process start, pass as `system` with `cache_control: {"type": "ephemeral"}`
-3. Replace `claude -p --append-system-prompt-file` invocation in `batch-runner.sh` with `node batch/batch-worker.mjs`
-4. Keep `batch-runner.sh` as the outer orchestrator (parallel spawning, state tracking, locking logic) — only the worker invocation changes
 
 ---
 

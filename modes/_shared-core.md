@@ -1,11 +1,9 @@
-# System Context — Core Rules (career-ops)
+# System Context -- career-ops (Core)
 
 <!-- ============================================================
      THIS FILE IS AUTO-UPDATABLE. Don't put personal data here.
      
      Your customizations go in modes/_profile.md (never auto-updated).
-     This file contains system rules, scoring logic, and tool config
-     that improve with each career-ops release.
      ============================================================ -->
 
 ## Sources of Truth
