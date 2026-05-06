@@ -65,7 +65,7 @@ export default function OffersTable({ mode, minScore = 0, maxScore = 5 }: Props)
       });
     } else if (mode === 'skipped') {
       // Show offers that are either manually skipped OR below threshold
-      base = base.filter((offer) => !offer.done && (offer.skipped || (offer.score ?? 0) < 3.0));
+      base = base.filter((offer) => !offer.done && (offer.skipped || (offer.score ?? 0) < 3.5));
     }
 
     if (!trimmed) return base;
@@ -134,7 +134,7 @@ export default function OffersTable({ mode, minScore = 0, maxScore = 5 }: Props)
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-lg font-semibold">
-                {mode === 'completed' ? 'Completed offers' : mode === 'skipped' ? 'Evaluated Out (< 3.0)' : 'Pending offers'}
+                {mode === 'completed' ? 'Completed offers' : mode === 'skipped' ? 'Evaluated Out (< 3.5)' : 'Pending offers'}
               </h2>
               <span className="inline-block rounded-full bg-border px-2.5 py-1 text-xs font-medium text-secondary">
                 {filtered.length}
@@ -144,8 +144,8 @@ export default function OffersTable({ mode, minScore = 0, maxScore = 5 }: Props)
               {mode === 'completed'
                 ? 'Offers you have already reviewed.'
                 : mode === 'skipped'
-                ? 'Offers below 3.0/5 threshold – not recommended to pursue.'
-                : 'Offers 3.0+ not yet marked as done.'}
+                ? 'Offers below 3.5/5 threshold – not recommended to pursue.'
+                : 'Offers 3.5+ not yet marked as done.'}
             </p>
           </div>
           <input
