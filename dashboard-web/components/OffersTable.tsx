@@ -132,9 +132,14 @@ export default function OffersTable({ mode, minScore = 0, maxScore = 5 }: Props)
       <div className="card p-4">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <h2 className="text-lg font-semibold">
-              {mode === 'completed' ? 'Completed offers' : mode === 'skipped' ? 'Evaluated Out (< 3.0)' : 'Pending offers'}
-            </h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-semibold">
+                {mode === 'completed' ? 'Completed offers' : mode === 'skipped' ? 'Evaluated Out (< 3.0)' : 'Pending offers'}
+              </h2>
+              <span className="inline-block rounded-full bg-border px-2.5 py-1 text-xs font-medium text-secondary">
+                {filtered.length}
+              </span>
+            </div>
             <p className="text-sm text-muted">
               {mode === 'completed'
                 ? 'Offers you have already reviewed.'

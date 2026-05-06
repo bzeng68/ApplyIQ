@@ -39,6 +39,7 @@ modes/_profile.md
 .resolved-prompt-*
 node_modules/
 dashboard-web/node_modules/
+dashboard-web/.next/
 bun.lock
 
 # OS
