@@ -1,0 +1,30 @@
+import { NextResponse } from "next/server";
+import fs from "fs";
+import path from "path";
+
+export async function GET(request: Request, { params }: { params: { num: string } }) {
+  try {
+    const projectRoot = path.join(process.cwd(), "..");
+    const reportsDir = path.join(projectRoot, "reports");
+
+    if (!fs.existsSync(reportsDir)) {
+      return NextResponse.json("", { status: 404 });
+    }
+
+    const files = fs.readdirSync(reportsDir);
+    const pattern = new RegExp(`^${params.num}-`);
+    const found = files.find((f) => pattern.test(f));
+
+    if (!found) {
+      return NextResponse.json("", { status: 404 });
+    }
+
+    const content = fs.readFileSync(path.join(reportsDir, found), "utf8");
+    return new NextResponse(content, {
+      headers: { "Content-Type": "text/plain" },
+    });
+  } catch (error) {
+    console.error("Error loading report:", error);
+    return NextResponse.json("", { status: 500 });
+  }
+}

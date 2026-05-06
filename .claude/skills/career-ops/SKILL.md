@@ -3,7 +3,7 @@ name: career-ops
 description: AI job search command center -- evaluate offers, generate CVs, scan portals, track applications
 user_invocable: true
 args: mode
-argument-hint: "[scan | deep | pdf | oferta | ofertas | apply | batch | tracker | pipeline | contacto | training | project | interview-prep | update]"
+argument-hint: "[scan | deep | pdf | oferta | ofertas | apply | batch | sequential | tracker | pipeline | contacto | training | project | interview-prep | update]"
 ---
 
 # career-ops -- Router
@@ -28,6 +28,7 @@ Determine the mode from `{{mode}}`:
 | `apply` | `apply` |
 | `scan` | `scan` |
 | `batch` | `batch` |
+| `sequential` | `sequential` |
 | `patterns` | `patterns` |
 | `followup` | `followup` |
 
@@ -58,6 +59,7 @@ Available commands:
   /career-ops apply     → Live application assistant (reads form + generates answers)
   /career-ops scan      → Scan portals and discover new offers
   /career-ops batch     → Batch processing with parallel workers (use `node batch/batch-worker.mjs` for OPT-3 caching)
+  /career-ops sequential → Automatically evaluate all unevaluated offers and populate dashboard
   /career-ops patterns  → Analyze rejection patterns and improve targeting
   /career-ops followup  → Follow-up cadence tracker: flag overdue, generate drafts
 
@@ -107,3 +109,66 @@ Agent(
 ```
 
 Execute the instructions from the loaded mode file.
+
+---
+
+## Sequential Mode (Automated Pipeline)
+
+If `{{mode}}` is `sequential`:
+
+1. **Scan for unevaluated offers:**
+   - Read `batch/batch-state.tsv`
+   - Find all rows where `status` is NOT `'completed'` OR `report_num` is empty
+   - Count unevaluated offers
+
+2. **Report status:**
+   - If 0 unevaluated: "All offers already evaluated. Dashboard is current. Run `npm run dashboard` to view."
+   - If >0: "Found {N} unevaluated offers. Starting automated evaluation pipeline..."
+
+3. **Delegate to subagent:**
+   - Load `modes/_shared-core.md` and `modes/_shared-scoring.md`
+   - Launch Agent with `subagent_type="general-purpose"` and:
+     ```
+     prompt: |
+       # Automated Sequential Evaluation Pipeline
+       
+       {_shared-core.md content}
+       
+       {_shared-scoring.md content}
+       
+       ## Your Task
+       
+       You will evaluate ALL unevaluated offers from batch-state.tsv sequentially and NON-INTERACTIVELY.
+       
+       ### Process (for each unevaluated offer):
+       
+       1. **Read offer metadata** from batch/batch-state.tsv (id, url)
+       2. **Fetch JD:** Use Playwright or WebFetch to get the current job description text from {url}
+       3. **Save JD:** Write to `data/jds/{id}.txt`
+       4. **Evaluate:** Apply blocks A-G scoring framework (role summary, CV match, level strategy, legitimacy)
+       5. **Generate report:** Create markdown report at `reports/{report_num}-{company-slug}-{date}.md`
+       6. **Update batch-state.tsv:** Set status='completed', completed_at=ISO8601, report_num, score
+       7. **Track progress:** Output "Evaluated {id}: {company} - {role} ({score}/5.0)"
+       
+       ### Critical Requirements
+       
+       - **Non-interactive:** No questions, no pausing, no user input. Just process all offers.
+       - **Report format:** Standard blocks A-F (role, CV match, level, comp, tradeoffs, notes) + block G (legitimacy)
+       - **Legitimacy:** High Confidence, Proceed with Caution, or Suspicious (use intuition from JD quality/posting details)
+       - **Score:** 0-5 scale based on overall fit (see _shared-scoring.md)
+       - **Handle failures:** If fetch fails, use archived JD from data/jds/{id}.txt if available; if evaluation fails, set score=2.0 and error reason
+       
+       ### After All Evaluations Complete
+       
+       1. Run: `node build-dashboard-data.mjs` (pre-compute dashboard JSON)
+       2. Run: `node merge-tracker.mjs` (merge TSV additions to applications.md)
+       3. Report: "Pipeline complete. Evaluated {total} offers. {passing} passed (≥3.0), {failing} below threshold. Dashboard ready: npm run dashboard"
+       
+       Start now. No preamble, just evaluate sequentially.
+     ```
+   - Description: "career-ops sequential: automated evaluation pipeline"
+
+4. **After completion:**
+   - Subagent will have updated batch-state.tsv, created reports, created JDs, updated tracker
+   - Subagent runs build-dashboard-data.mjs and merge-tracker.mjs
+   - Confirm to user: "Sequential pipeline complete. Dashboard is ready for viewing."

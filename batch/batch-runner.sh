@@ -343,12 +343,38 @@ process_offer() {
 
   local log_file="$LOGS_DIR/${report_num}-${id}.log"
 
-  # OPT-3: SDK worker with prompt caching (batch-worker.mjs)
-  # Handles JD fetching, Anthropic API call with cache_control, report + tracker writes
+  # Build resolved prompt with placeholders
+  local resolved_prompt="$BATCH_DIR/.resolved-prompt-${id}.md"
+  local esc_url esc_jd_file esc_report_num esc_date esc_id
+  esc_url="${url//\\/\\\\}"; esc_url="${esc_url//|/\\|}"
+  esc_jd_file="${jd_file//\\/\\\\}"; esc_jd_file="${esc_jd_file//|/\\|}"
+  esc_report_num="${report_num//\\/\\\\}"; esc_report_num="${esc_report_num//|/\\|}"
+  esc_date="${date//\\/\\\\}"; esc_date="${esc_date//|/\\|}"
+  esc_id="${id//\\/\\\\}"; esc_id="${esc_id//|/\\|}"
+
+  sed -e "s|{{URL}}|${esc_url}|g" \
+      -e "s|{{JD_FILE}}|${esc_jd_file}|g" \
+      -e "s|{{REPORT_NUM}}|${esc_report_num}|g" \
+      -e "s|{{DATE}}|${esc_date}|g" \
+      -e "s|{{ID}}|${esc_id}|g" \
+      "$PROMPT_FILE" > "$resolved_prompt"
+
+  # Launch claude -p worker (uses default model from Claude Max subscription)
   local exit_code=0
-  node "$PROJECT_DIR/batch/batch-worker.mjs" \
-    "$id" "$url" "$jd_file" "$report_num" "$date" \
+  claude -p \
+    --dangerously-skip-permissions \
+    --append-system-prompt-file "$resolved_prompt" \
+    "$prompt" \
     > "$log_file" 2>&1 || exit_code=$?
+
+  # Cleanup resolved prompt
+  rm -f "$resolved_prompt"
+
+  local jd_store_dir="$PROJECT_DIR/data/jds"
+  mkdir -p "$jd_store_dir"
+  if [[ -s "$jd_file" ]]; then
+    cp "$jd_file" "$jd_store_dir/${id}.txt"
+  fi
 
   local completed_at
   completed_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
@@ -578,6 +604,10 @@ main() {
 
   # Merge tracker additions
   merge_tracker
+
+  echo ""
+  echo "=== Building dashboard data ==="
+  node "$PROJECT_DIR/build-dashboard-data.mjs" || echo "⚠️  Dashboard data build failed"
 
   # Print summary
   print_summary
