@@ -19,6 +19,7 @@ import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const DATA_ROOT = process.env.DATA_ROOT ? path.resolve(process.env.DATA_ROOT) : __dirname;
 
 // Parse TSV file
 function parseTSV(filePath) {
@@ -72,7 +73,7 @@ function findReportFile(reportsDir, reportNum) {
 
 // Parse UI state
 function parseUIState() {
-  const filePath = "data/ui-state.json";
+  const filePath = path.join(DATA_ROOT, "data/ui-state.json");
   if (!fs.existsSync(filePath)) {
     return { done: [] };
   }
@@ -195,10 +196,10 @@ function relativeTime(isoString) {
 
 // Main
 function main() {
-  const reportsDir = "reports";
-  const batchState = parseTSV("batch/batch-state.tsv");
-  const batchInput = parseTSV("batch/batch-input.tsv");
-  const scanHistory = parseTSV("data/scan-history.tsv");
+  const reportsDir = path.join(DATA_ROOT, "reports");
+  const batchState = parseTSV(path.join(DATA_ROOT, "batch/batch-state.tsv"));
+  const batchInput = parseTSV(path.join(DATA_ROOT, "batch/batch-input.tsv"));
+  const scanHistory = parseTSV(path.join(DATA_ROOT, "data/scan-history.tsv"));
   const uiState = parseUIState();
 
   const scanHistoryMap = buildScanHistoryMap(scanHistory);
@@ -271,7 +272,7 @@ function main() {
   });
 
   // Write output
-  const outputPath = "data/dashboard-offers.json";
+  const outputPath = path.join(DATA_ROOT, "data/dashboard-offers.json");
   fs.mkdirSync(path.dirname(outputPath), { recursive: true });
   fs.writeFileSync(outputPath, JSON.stringify(offers, null, 2));
 

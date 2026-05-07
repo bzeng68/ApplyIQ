@@ -16,18 +16,22 @@
  */
 
 import { readFileSync, writeFileSync, appendFileSync, existsSync, mkdirSync } from 'fs';
+import path from 'path';
 import yaml from 'js-yaml';
 const parseYaml = yaml.load;
 
 // ── Config ──────────────────────────────────────────────────────────
 
-const PORTALS_PATH = 'portals.yml';
-const SCAN_HISTORY_PATH = 'data/scan-history.tsv';
-const PIPELINE_PATH = 'data/pipeline.md';
-const APPLICATIONS_PATH = 'data/applications.md';
+const APP_ROOT = process.cwd();
+const DATA_ROOT = process.env.DATA_ROOT ? path.resolve(process.env.DATA_ROOT) : APP_ROOT;
+
+const PORTALS_PATH = path.join(APP_ROOT, 'portals.yml');
+const SCAN_HISTORY_PATH = path.join(DATA_ROOT, 'data/scan-history.tsv');
+const PIPELINE_PATH = path.join(DATA_ROOT, 'data/pipeline.md');
+const APPLICATIONS_PATH = path.join(DATA_ROOT, 'data/applications.md');
 
 // Ensure required directories exist (fresh setup)
-mkdirSync('data', { recursive: true });
+mkdirSync(path.join(DATA_ROOT, 'data'), { recursive: true });
 
 const CONCURRENCY = 10;
 const FETCH_TIMEOUT_MS = 10_000;

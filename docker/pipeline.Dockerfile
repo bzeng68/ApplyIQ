@@ -4,7 +4,6 @@ RUN apt-get update && apt-get install -y curl jq && \
     npm install -g playwright@latest && \
     npx playwright install --with-deps chromium
 COPY package*.json ./
-RUN npm ci --omit=dev && \
-    npm install @anthropic-ai/sdk @google-cloud/storage
+RUN npm ci --omit=dev
 COPY . ./
 ENTRYPOINT ["bash", "scripts/pipeline-entrypoint.sh"]

@@ -26,6 +26,19 @@ resource "google_cloud_run_v2_service" "dashboard" {
       ports {
         container_port = 8080
       }
+
+      volume_mounts {
+        name       = "data"
+        mount_path = "/mnt/data"
+      }
+    }
+
+    volumes {
+      name = "data"
+      gcs {
+        bucket    = google_storage_bucket.data.name
+        read_only = true
+      }
     }
   }
 

@@ -14,8 +14,8 @@ resource "google_cloud_run_v2_job" "pipeline" {
         image = "us-docker.pkg.dev/cloudrun/container/hello"
 
         env {
-          name  = "GCS_BUCKET"
-          value = google_storage_bucket.data.name
+          name  = "DATA_ROOT"
+          value = "/mnt/data"
         }
 
         env {
@@ -26,6 +26,19 @@ resource "google_cloud_run_v2_job" "pipeline" {
               version = "latest"
             }
           }
+        }
+
+        volume_mounts {
+          name       = "data"
+          mount_path = "/mnt/data"
+        }
+      }
+
+      volumes {
+        name = "data"
+        gcs {
+          bucket    = google_storage_bucket.data.name
+          read_only = false
         }
       }
     }

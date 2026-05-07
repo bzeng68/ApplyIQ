@@ -1,5 +1,5 @@
 {
-  "name": "career-ops",
+  "name": "applyiq",
   "version": "1.6.0",
   "description": "AI-powered job search pipeline built on Claude Code",
   "scripts": {
@@ -8,14 +8,11 @@
     "normalize": "node normalize-statuses.mjs",
     "dedup": "node dedup-tracker.mjs",
     "merge": "node merge-tracker.mjs",
-    "pdf": "node generate-pdf.mjs",
-    "sync-check": "node cv-sync-check.mjs",
     "update:check": "node update-system.mjs check",
     "update": "node update-system.mjs apply",
     "rollback": "node update-system.mjs rollback",
     "liveness": "node check-liveness.mjs",
     "scan": "node scan.mjs",
-    "gemini:eval": "node gemini-eval.mjs",
     "dashboard": "cd dashboard-web && npm run dev"
   },
   "keywords": [
@@ -25,18 +22,11 @@
     "career",
     "automation"
   ],
-  "author": "Santiago Fernández de Valderrama <hi@santifer.io> (https://santifer.io)",
-  "homepage": "https://santifer.io",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/santifer/career-ops"
-  },
+  "author": "Bryan Zeng",
   "license": "MIT",
   "dependencies": {
-    "@google/generative-ai": "^0.24.1",
     "@anthropic-ai/sdk": "^0.26.0",
     "dotenv": "^16.4.5",
-    "@google-cloud/storage": "^7.11.2",
     "js-yaml": "^4.1.1",
     "playwright": "^1.58.1"
   }
