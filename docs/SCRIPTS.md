@@ -11,13 +11,12 @@ All scripts live in the project root as `.mjs` modules and are exposed via `npm 
 | `npm run normalize` | `normalize-statuses.mjs` | Fix non-canonical statuses |
 | `npm run dedup` | `dedup-tracker.mjs` | Remove duplicate tracker entries |
 | `npm run merge` | `merge-tracker.mjs` | Merge batch TSVs into applications.md |
-| `npm run pdf` | `generate-pdf.mjs` | Convert HTML to ATS-optimized PDF |
-| `npm run sync-check` | `cv-sync-check.mjs` | Validate CV/profile consistency |
 | `npm run update:check` | `update-system.mjs check` | Check for upstream updates |
 | `npm run update` | `update-system.mjs apply` | Apply upstream update |
 | `npm run rollback` | `update-system.mjs rollback` | Rollback last update |
 | `npm run liveness` | `check-liveness.mjs` | Test if job URLs are still active |
 | `npm run scan` | `scan.mjs` | Zero-token portal scanner |
+| `npm run dashboard` | `dashboard-web` | Start web dashboard (localhost:3000) |
 
 ---
 
@@ -91,32 +90,6 @@ Processed TSVs are moved to `batch/tracker-additions/merged/`.
 
 ---
 
-## pdf
-
-Renders an HTML file to a print-quality, ATS-parseable PDF via headless Chromium. Resolves font paths from `fonts/`, normalizes Unicode for ATS compatibility (em-dashes, smart quotes, zero-width characters), and reports page count and file size.
-
-```bash
-npm run pdf -- input.html output.pdf
-npm run pdf -- input.html output.pdf --format=letter   # US letter
-npm run pdf -- input.html output.pdf --format=a4        # A4 (default)
-```
-
-**Exit codes:** `0` PDF generated, `1` missing arguments or generation failure.
-
----
-
-## sync-check
-
-Validates that the career-ops setup is internally consistent: `cv.md` exists and is not too short, `config/profile.yml` exists with required fields, no hardcoded metrics in `modes/_shared.md` or `batch/batch-prompt.md`, and `article-digest.md` freshness (warns if older than 30 days).
-
-```bash
-npm run sync-check
-```
-
-**Exit codes:** `0` no errors (warnings allowed), `1` errors found.
-
----
-
 ## update:check
 
 Checks whether a newer version of career-ops is available upstream. Outputs JSON to stdout:
@@ -164,7 +137,7 @@ npm run rollback
 
 ## liveness
 
-Tests whether job posting URLs are still live using headless Chromium. Detects expired patterns (e.g. "job no longer available"), HTTP 404/410, ATS redirect patterns, and apply-button presence. Supports multi-language expired patterns (English, German, French).
+Tests whether job posting URLs are still live using headless Chromium. Detects expired patterns (e.g. "job no longer available"), HTTP 404/410, ATS redirect patterns, and apply-button presence.
 
 ```bash
 npm run liveness -- https://example.com/job/123

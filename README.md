@@ -40,7 +40,7 @@ scan portals  →  evaluate offer (A-F scoring)  →  dashboard
 ```bash
 # 1. Install dependencies
 npm install
-npx playwright install chromium
+npx playwright install chromium   # Required for liveness checks and batch evaluation
 
 # 2. Validate setup
 npm run doctor
