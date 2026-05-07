@@ -86,3 +86,28 @@ npm run verify      # Check pipeline integrity
 ```bash
 npm run dashboard   # Start web dashboard at localhost:3000
 ```
+
+## Multiple Profiles
+
+To run the pipeline for more than one person (or job-search persona), create a `profiles/` directory with a subfolder per profile:
+
+```
+profiles/
+  your-name/
+    cv.md
+    portals.yml
+    modes/_profile.md
+    config/profile.yml
+    article-digest.md     # optional
+    batch/
+      batch-input.tsv     # URLs to evaluate
+```
+
+Each profile's personal files are gitignored. After setting them up, sync to GCS before the first cloud pipeline run:
+
+```bash
+export GCS_BUCKET=applyiq-data-apply-iq-495519
+node sync-to-gcs.mjs
+```
+
+The Cloud Run pipeline iterates all `profiles/*/` directories automatically — each runs scan → evaluate → format in full isolation. The dashboard dropdown appears in the header when two or more profiles exist. The active selection is persisted in localStorage.

@@ -5,22 +5,23 @@ import { useEffect, useState } from 'react';
 type Props = {
   open: boolean;
   offerId: number | null;
+  profile: string;
   onClose: () => void;
 };
 
-export default function JDModal({ open, offerId, onClose }: Props) {
+export default function JDModal({ open, offerId, profile, onClose }: Props) {
   const [content, setContent] = useState<string>('');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!open || offerId === null) return;
+    if (!open || offerId === null || !profile) return;
     setLoading(true);
-    fetch(`/api/jds/${offerId}`)
+    fetch(`/api/jds/${offerId}?profile=${encodeURIComponent(profile)}`)
       .then((res) => (res.ok ? res.text() : Promise.reject()))
       .then((text) => setContent(text))
       .catch(() => setContent('No JD text available.'))
       .finally(() => setLoading(false));
-  }, [open, offerId]);
+  }, [open, offerId, profile]);
 
   useEffect(() => {
     if (!open) return;

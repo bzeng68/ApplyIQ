@@ -1,23 +1,37 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-export DATA_ROOT=${DATA_ROOT:-/mnt/data}
+BASE_ROOT="${DATA_ROOT:-/mnt/data}"
+PROFILES_BASE="${BASE_ROOT}/profiles"
 cd /app
 
-# Restore user config files from GCS (synced locally via sync-to-gcs.mjs).
-# These are gitignored so they are not baked into the container image.
-USER_CONFIG="${DATA_ROOT}/user-config"
-[ -f "${USER_CONFIG}/cv.md" ]          && cp "${USER_CONFIG}/cv.md"          /app/cv.md
-[ -f "${USER_CONFIG}/portals.yml" ]    && cp "${USER_CONFIG}/portals.yml"    /app/portals.yml
-[ -f "${USER_CONFIG}/article-digest.md" ] && cp "${USER_CONFIG}/article-digest.md" /app/article-digest.md
-[ -f "${USER_CONFIG}/_profile.md" ]    && cp "${USER_CONFIG}/_profile.md"    /app/modes/_profile.md
-if [ -f "${USER_CONFIG}/profile.yml" ]; then
-  mkdir -p /app/config
-  cp "${USER_CONFIG}/profile.yml" /app/config/profile.yml
+if [ ! -d "$PROFILES_BASE" ] || [ -z "$(ls -A "$PROFILES_BASE" 2>/dev/null)" ]; then
+  echo "No profiles found at ${PROFILES_BASE}"
+  exit 0
 fi
 
-node scan.mjs
-node scripts/evaluate-new.mjs
-node build-dashboard-data.mjs
+for profile_dir in "${PROFILES_BASE}"/*/; do
+  [ -d "$profile_dir" ] || continue
+  PROFILE_NAME=$(basename "$profile_dir")
+  export DATA_ROOT="$profile_dir"
+  echo "=== Pipeline: ${PROFILE_NAME} ==="
 
-echo "Pipeline complete: $(date -u +%FT%TZ)"
+  # Restore gitignored user config files from GCS (synced via sync-to-gcs.mjs)
+  UC="${profile_dir}user-config"
+  [ -f "${UC}/cv.md" ]             && cp "${UC}/cv.md"             /app/cv.md
+  [ -f "${UC}/portals.yml" ]       && cp "${UC}/portals.yml"       /app/portals.yml
+  [ -f "${UC}/article-digest.md" ] && cp "${UC}/article-digest.md" /app/article-digest.md
+  [ -f "${UC}/_profile.md" ]       && cp "${UC}/_profile.md"       /app/modes/_profile.md
+  if [ -f "${UC}/profile.yml" ]; then
+    mkdir -p /app/config
+    cp "${UC}/profile.yml" /app/config/profile.yml
+  fi
+
+  node scan.mjs
+  node scripts/evaluate-new.mjs
+  node build-dashboard-data.mjs
+
+  echo "=== Done: ${PROFILE_NAME} ==="
+done
+
+echo "All profiles complete: $(date -u +%FT%TZ)"

@@ -38,15 +38,38 @@ const SYNC_DIRS = [
 // Directories inside batch/ to skip (ephemeral logs not useful in cloud)
 const SKIP_SUBDIRS = ['logs'];
 
-// User config files that are gitignored and must be synced explicitly so
-// Cloud Run has candidate context (CV, profile, portals) at runtime.
-const USER_CONFIG_FILES = [
-  { local: path.join(__dirname, 'cv.md'),                    remote: 'user-config/cv.md' },
-  { local: path.join(__dirname, 'portals.yml'),              remote: 'user-config/portals.yml' },
-  { local: path.join(__dirname, 'article-digest.md'),        remote: 'user-config/article-digest.md' },
-  { local: path.join(__dirname, 'modes/_profile.md'),        remote: 'user-config/_profile.md' },
-  { local: path.join(__dirname, 'config/profile.yml'),       remote: 'user-config/profile.yml' },
-];
+// Per-profile user config files synced from profiles/{name}/ to GCS.
+// Each profile directory contains the gitignored personal files that Cloud Run
+// needs at runtime (CV, portals, candidate profile, eval config).
+async function syncProfiles(bucket, errors) {
+  const profilesDir = path.join(__dirname, 'profiles');
+  if (!fs.existsSync(profilesDir)) return 0;
+  let uploaded = 0;
+  for (const entry of fs.readdirSync(profilesDir, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    const name = entry.name;
+    const dir = path.join(profilesDir, name);
+    const fileMap = [
+      ['cv.md',                 `profiles/${name}/user-config/cv.md`],
+      ['portals.yml',           `profiles/${name}/user-config/portals.yml`],
+      ['article-digest.md',     `profiles/${name}/user-config/article-digest.md`],
+      ['modes/_profile.md',     `profiles/${name}/user-config/_profile.md`],
+      ['config/profile.yml',    `profiles/${name}/user-config/profile.yml`],
+      ['batch/batch-input.tsv', `profiles/${name}/batch/batch-input.tsv`],
+    ];
+    for (const [rel, dest] of fileMap) {
+      const local = path.join(dir, rel);
+      if (!fs.existsSync(local)) continue;
+      try {
+        await bucket.upload(local, { destination: dest, resumable: false });
+        uploaded++;
+      } catch (err) {
+        errors.push(`${dest}: ${err.message}`);
+      }
+    }
+  }
+  return uploaded;
+}
 
 function collectFiles(dir, baseDir = dir) {
   if (!fs.existsSync(dir)) return [];
@@ -102,17 +125,8 @@ export async function syncToGcs() {
     }
   }
 
-  // Sync user config files (gitignored, needed by Cloud Run at runtime)
-  for (const { local, remote } of USER_CONFIG_FILES) {
-    if (!fs.existsSync(local)) continue;
-    try {
-      await bucket.upload(local, { destination: remote, resumable: false });
-      uploaded++;
-    } catch (err) {
-      errors.push(`${remote}: ${err.message}`);
-      skipped++;
-    }
-  }
+  // Sync per-profile user config + batch-input from profiles/{name}/ to GCS
+  uploaded += await syncProfiles(bucket, errors);
 
   if (errors.length > 0) {
     console.warn(`⚠️  GCS sync: ${errors.length} file(s) failed:`);

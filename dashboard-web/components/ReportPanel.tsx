@@ -7,22 +7,23 @@ import remarkGfm from 'remark-gfm';
 type Props = {
   open: boolean;
   reportNum: string | null;
+  profile: string;
   onClose: () => void;
 };
 
-export default function ReportPanel({ open, reportNum, onClose }: Props) {
+export default function ReportPanel({ open, reportNum, profile, onClose }: Props) {
   const [content, setContent] = useState<string>('');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!open || !reportNum) return;
+    if (!open || !reportNum || !profile) return;
     setLoading(true);
-    fetch(`/api/reports/${reportNum}`)
+    fetch(`/api/reports/${reportNum}?profile=${encodeURIComponent(profile)}`)
       .then((res) => (res.ok ? res.text() : Promise.reject()))
       .then((text) => setContent(text))
       .catch(() => setContent('No report found.'))
       .finally(() => setLoading(false));
-  }, [open, reportNum]);
+  }, [open, reportNum, profile]);
 
   if (!open) return null;
 

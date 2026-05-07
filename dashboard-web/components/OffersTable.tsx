@@ -7,6 +7,7 @@ import ScoreBadge from './ScoreBadge';
 import LegitimacyBadge from './LegitimacyBadge';
 import RemoteBadge from './RemoteBadge';
 import { formatRelativeTime } from '../lib/relative-time';
+import { useProfile } from '../lib/profile-context';
 
 export type Offer = {
   id: number;
@@ -35,6 +36,7 @@ type Props = {
 };
 
 export default function OffersTable({ mode, minScore = 0, maxScore = 5 }: Props) {
+  const { activeProfile } = useProfile();
   const [offers, setOffers] = useState<Offer[]>([]);
   const [query, setQuery] = useState('');
   const [sortKey, setSortKey] = useState<SortKey>('score');
@@ -43,11 +45,12 @@ export default function OffersTable({ mode, minScore = 0, maxScore = 5 }: Props)
   const [selectedReport, setSelectedReport] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch('/api/offers')
+    if (!activeProfile) return;
+    fetch(`/api/offers?profile=${encodeURIComponent(activeProfile)}`)
       .then((res) => res.json())
       .then((data) => setOffers(data))
       .catch(() => setOffers([]));
-  }, []);
+  }, [activeProfile]);
 
   const filtered = useMemo(() => {
     const trimmed = query.trim().toLowerCase();
@@ -106,7 +109,7 @@ export default function OffersTable({ mode, minScore = 0, maxScore = 5 }: Props)
     fetch(`/api/offers/${id}/done`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ done })
+      body: JSON.stringify({ done, profile: activeProfile }),
     }).catch(() => null);
   }
 
@@ -115,7 +118,7 @@ export default function OffersTable({ mode, minScore = 0, maxScore = 5 }: Props)
     fetch(`/api/offers/${id}/skip`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ skipped })
+      body: JSON.stringify({ skipped, profile: activeProfile }),
     }).catch(() => null);
   }
 
@@ -258,8 +261,8 @@ export default function OffersTable({ mode, minScore = 0, maxScore = 5 }: Props)
         </table>
       </div>
 
-      <JDModal open={selectedJd !== null} offerId={selectedJd} onClose={() => setSelectedJd(null)} />
-      <ReportPanel open={selectedReport !== null} reportNum={selectedReport} onClose={() => setSelectedReport(null)} />
+      <JDModal open={selectedJd !== null} offerId={selectedJd} profile={activeProfile} onClose={() => setSelectedJd(null)} />
+      <ReportPanel open={selectedReport !== null} reportNum={selectedReport} profile={activeProfile} onClose={() => setSelectedReport(null)} />
     </div>
   );
 }

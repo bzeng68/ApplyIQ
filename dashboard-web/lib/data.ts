@@ -2,18 +2,33 @@ import fs from 'fs';
 import path from 'path';
 import { findReportFile, normalizeReportNum, parseReport, readTsv } from './parsers';
 
-const ROOT = process.env.DATA_ROOT
+const BASE_ROOT = process.env.DATA_ROOT
   ? path.resolve(process.env.DATA_ROOT)
   : path.resolve(process.cwd(), '..');
-const DATA_DIR = path.join(ROOT, 'data');
-const REPORTS_DIR = path.join(ROOT, 'reports');
-const BATCH_DIR = path.join(ROOT, 'batch');
 
-const STATE_FILE = path.join(BATCH_DIR, 'batch-state.tsv');
-const INPUT_FILE = path.join(BATCH_DIR, 'batch-input.tsv');
-const SCAN_FILE = path.join(DATA_DIR, 'scan-history.tsv');
-const UI_STATE_FILE = path.join(DATA_DIR, 'ui-state.json');
-const DASHBOARD_FILE = path.join(DATA_DIR, 'dashboard-offers.json');
+function profilePaths(profile: string) {
+  const root = path.join(BASE_ROOT, 'profiles', profile);
+  return {
+    DATA_DIR:       path.join(root, 'data'),
+    REPORTS_DIR:    path.join(root, 'reports'),
+    BATCH_DIR:      path.join(root, 'batch'),
+    UI_STATE_FILE:  path.join(root, 'data', 'ui-state.json'),
+    DASHBOARD_FILE: path.join(root, 'data', 'dashboard-offers.json'),
+    STATE_FILE:     path.join(root, 'batch', 'batch-state.tsv'),
+    INPUT_FILE:     path.join(root, 'batch', 'batch-input.tsv'),
+    SCAN_FILE:      path.join(root, 'data', 'scan-history.tsv'),
+  };
+}
+
+export function listProfiles(): string[] {
+  const dir = path.join(BASE_ROOT, 'profiles');
+  if (!fs.existsSync(dir)) return [];
+  return fs
+    .readdirSync(dir, { withFileTypes: true })
+    .filter((e) => e.isDirectory())
+    .map((e) => e.name)
+    .sort();
+}
 
 export type Offer = {
   id: number;
@@ -33,24 +48,24 @@ export type Offer = {
   skipped?: boolean;
 };
 
-function loadUiState() {
-  if (!fs.existsSync(UI_STATE_FILE)) return { done: [], skipped: [] };
+function loadUiState(uiStateFile: string) {
+  if (!fs.existsSync(uiStateFile)) return { done: [], skipped: [] };
   try {
-    const data = JSON.parse(fs.readFileSync(UI_STATE_FILE, 'utf8'));
+    const data = JSON.parse(fs.readFileSync(uiStateFile, 'utf8'));
     return {
       done: Array.isArray(data.done) ? data.done : [],
       skipped: Array.isArray(data.skipped) ? data.skipped : [],
     };
-  } catch (e) {
+  } catch {
     return { done: [], skipped: [] };
   }
 }
 
-function buildOffers() {
-  const inputs = readTsv(INPUT_FILE);
-  const states = readTsv(STATE_FILE);
-  const scans = readTsv(SCAN_FILE);
-  const uiState = loadUiState();
+function buildOffers(p: ReturnType<typeof profilePaths>): Offer[] {
+  const inputs = readTsv(p.INPUT_FILE);
+  const states = readTsv(p.STATE_FILE);
+  const scans = readTsv(p.SCAN_FILE);
+  const uiState = loadUiState(p.UI_STATE_FILE);
   const doneSet = new Set((uiState.done || []).map((id: number) => Number(id)));
   const skippedSet = new Set((uiState.skipped || []).map((id: number) => Number(id)));
 
@@ -67,8 +82,8 @@ function buildOffers() {
     if (state.status !== 'completed' && state.status !== 'skipped') continue;
 
     const reportNum = normalizeReportNum(state.report_num);
-    const reportFile = reportNum ? findReportFile(REPORTS_DIR, reportNum) : null;
-    const reportPath = reportFile ? path.join(REPORTS_DIR, reportFile) : null;
+    const reportFile = reportNum ? findReportFile(p.REPORTS_DIR, reportNum) : null;
+    const reportPath = reportFile ? path.join(p.REPORTS_DIR, reportFile) : null;
     const reportMeta = parseReport(reportPath);
     const scan = scanByUrl.get(row.url) || {};
 
@@ -84,7 +99,7 @@ function buildOffers() {
       archetype: reportMeta.archetype || null,
       legitimacy: reportMeta.legitimacy || null,
       remote: reportMeta.remote || null,
-      scanned_at: scan.first_seen || null,
+      scanned_at: (scan as Record<string, string>).first_seen || null,
       evaluated_at: state.completed_at || null,
       done: doneSet.has(id),
       skipped: skippedSet.has(id),
@@ -94,29 +109,31 @@ function buildOffers() {
   return offers;
 }
 
-export function loadDashboardOffers(): Offer[] {
-  const uiState = loadUiState();
+export function loadDashboardOffers(profile: string): Offer[] {
+  const p = profilePaths(profile);
+  const uiState = loadUiState(p.UI_STATE_FILE);
   const doneSet = new Set((uiState.done || []).map((id: number) => Number(id)));
   const skippedSet = new Set((uiState.skipped || []).map((id: number) => Number(id)));
 
-  if (fs.existsSync(DASHBOARD_FILE)) {
+  if (fs.existsSync(p.DASHBOARD_FILE)) {
     try {
-      const raw = JSON.parse(fs.readFileSync(DASHBOARD_FILE, 'utf8')) as Offer[];
+      const raw = JSON.parse(fs.readFileSync(p.DASHBOARD_FILE, 'utf8')) as Offer[];
       return raw.map((offer) => ({
         ...offer,
         done: doneSet.has(Number(offer.id)),
         skipped: skippedSet.has(Number(offer.id)),
       }));
-    } catch (e) {
-      return buildOffers();
+    } catch {
+      return buildOffers(p);
     }
   }
 
-  return buildOffers();
+  return buildOffers(p);
 }
 
-export function updateDoneState(id: number, done?: boolean) {
-  const uiState = loadUiState();
+export function updateDoneState(id: number, profile: string, done?: boolean) {
+  const p = profilePaths(profile);
+  const uiState = loadUiState(p.UI_STATE_FILE);
   const doneSet = new Set((uiState.done || []).map((entry: number) => Number(entry)));
   if (typeof done === 'boolean') {
     done ? doneSet.add(id) : doneSet.delete(id);
@@ -127,13 +144,14 @@ export function updateDoneState(id: number, done?: boolean) {
     done: Array.from(doneSet).sort((a, b) => (a as number) - (b as number)),
     skipped: uiState.skipped || [],
   };
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-  fs.writeFileSync(UI_STATE_FILE, JSON.stringify(nextState, null, 2));
+  fs.mkdirSync(p.DATA_DIR, { recursive: true });
+  fs.writeFileSync(p.UI_STATE_FILE, JSON.stringify(nextState, null, 2));
   return nextState;
 }
 
-export function updateSkipState(id: number, skipped?: boolean) {
-  const uiState = loadUiState();
+export function updateSkipState(id: number, profile: string, skipped?: boolean) {
+  const p = profilePaths(profile);
+  const uiState = loadUiState(p.UI_STATE_FILE);
   const skippedSet = new Set((uiState.skipped || []).map((entry: number) => Number(entry)));
   if (typeof skipped === 'boolean') {
     skipped ? skippedSet.add(id) : skippedSet.delete(id);
@@ -144,19 +162,21 @@ export function updateSkipState(id: number, skipped?: boolean) {
     done: uiState.done || [],
     skipped: Array.from(skippedSet).sort((a, b) => (a as number) - (b as number)),
   };
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-  fs.writeFileSync(UI_STATE_FILE, JSON.stringify(nextState, null, 2));
+  fs.mkdirSync(p.DATA_DIR, { recursive: true });
+  fs.writeFileSync(p.UI_STATE_FILE, JSON.stringify(nextState, null, 2));
   return nextState;
 }
 
-export function findReportByNum(num: string) {
+export function findReportByNum(num: string, profile: string) {
+  const p = profilePaths(profile);
   const normalized = normalizeReportNum(num);
   if (!normalized) return null;
-  const file = findReportFile(REPORTS_DIR, normalized);
-  return file ? path.join(REPORTS_DIR, file) : null;
+  const file = findReportFile(p.REPORTS_DIR, normalized);
+  return file ? path.join(p.REPORTS_DIR, file) : null;
 }
 
-export function findJdById(id: string) {
-  const file = path.join(DATA_DIR, 'jds', `${id}.txt`);
+export function findJdById(id: string, profile: string) {
+  const p = profilePaths(profile);
+  const file = path.join(p.DATA_DIR, 'jds', `${id}.txt`);
   return fs.existsSync(file) ? file : null;
 }

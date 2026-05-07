@@ -7,13 +7,16 @@ export async function POST(request: Request, context: { params: { id: string } }
     return NextResponse.json({ error: 'Invalid id' }, { status: 400 });
   }
 
-  let body: { skipped?: boolean } = {};
+  let body: { skipped?: boolean; profile?: string } = {};
   try {
     body = await request.json();
-  } catch (e) {
+  } catch {
     body = {};
   }
 
-  const nextState = updateSkipState(id, body.skipped);
+  const profile = body.profile ?? '';
+  if (!profile) return NextResponse.json({ error: 'profile required' }, { status: 400 });
+
+  const nextState = updateSkipState(id, profile, body.skipped);
   return NextResponse.json(nextState);
 }
