@@ -51,5 +51,4 @@ bun.lock
 .claude/settings.local.json
 .claude/memory/
 career-dashboard
-package-lock.json
 !dashboard-web/package-lock.json
