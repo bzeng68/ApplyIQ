@@ -106,6 +106,19 @@ resource "google_iam_workload_identity_pool_provider" "github" {
   attribute_condition = "assertion.repository == \"${var.github_repo}\""
 }
 
+# Deploy SA: act as the dashboard and pipeline service accounts during Cloud Run deploy
+resource "google_service_account_iam_member" "deploy_actAs_dashboard" {
+  service_account_id = google_service_account.dashboard_sa.name
+  role               = "roles/iam.serviceAccountUser"
+  member             = "serviceAccount:${google_service_account.deploy_sa.email}"
+}
+
+resource "google_service_account_iam_member" "deploy_actAs_pipeline" {
+  service_account_id = google_service_account.pipeline_sa.name
+  role               = "roles/iam.serviceAccountUser"
+  member             = "serviceAccount:${google_service_account.deploy_sa.email}"
+}
+
 # Allow the GitHub repo to impersonate the deploy SA
 resource "google_service_account_iam_member" "deploy_wif_binding" {
   service_account_id = google_service_account.deploy_sa.name
