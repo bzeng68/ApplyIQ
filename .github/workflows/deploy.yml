@@ -39,15 +39,17 @@ jobs:
         run: |
           IMAGE=${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/applyiq/dashboard:${{ github.sha }}
           LATEST=${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/applyiq/dashboard:latest
-          gcloud builds submit --tag $IMAGE --dockerfile docker/dashboard.Dockerfile .
-          gcloud artifacts docker tags add $IMAGE $LATEST
+          docker build -f docker/dashboard.Dockerfile -t $IMAGE -t $LATEST .
+          docker push $IMAGE
+          docker push $LATEST
 
       - name: Build and push pipeline image
         run: |
           IMAGE=${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/applyiq/pipeline:${{ github.sha }}
           LATEST=${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/applyiq/pipeline:latest
-          gcloud builds submit --tag $IMAGE --dockerfile docker/pipeline.Dockerfile .
-          gcloud artifacts docker tags add $IMAGE $LATEST
+          docker build -f docker/pipeline.Dockerfile -t $IMAGE -t $LATEST .
+          docker push $IMAGE
+          docker push $LATEST
 
       - name: Deploy Cloud Run service
         run: |
