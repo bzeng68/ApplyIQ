@@ -2,7 +2,9 @@ import fs from 'fs';
 import path from 'path';
 import { findReportFile, normalizeReportNum, parseReport, readTsv } from './parsers';
 
-const ROOT = path.resolve(process.cwd(), '..');
+const ROOT = process.env.DATA_ROOT
+  ? path.resolve(process.env.DATA_ROOT)
+  : path.resolve(process.cwd(), '..');
 const DATA_DIR = path.join(ROOT, 'data');
 const REPORTS_DIR = path.join(ROOT, 'reports');
 const BATCH_DIR = path.join(ROOT, 'batch');
@@ -122,7 +124,7 @@ export function updateDoneState(id: number, done?: boolean) {
     doneSet.has(id) ? doneSet.delete(id) : doneSet.add(id);
   }
   const nextState = {
-    done: Array.from(doneSet).sort((a, b) => a - b),
+    done: Array.from(doneSet).sort((a, b) => (a as number) - (b as number)),
     skipped: uiState.skipped || [],
   };
   fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -140,7 +142,7 @@ export function updateSkipState(id: number, skipped?: boolean) {
   }
   const nextState = {
     done: uiState.done || [],
-    skipped: Array.from(skippedSet).sort((a, b) => a - b),
+    skipped: Array.from(skippedSet).sort((a, b) => (a as number) - (b as number)),
   };
   fs.mkdirSync(DATA_DIR, { recursive: true });
   fs.writeFileSync(UI_STATE_FILE, JSON.stringify(nextState, null, 2));

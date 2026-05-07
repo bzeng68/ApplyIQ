@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { updateDoneState } from '../../../../lib/data';
+import { updateDoneState } from '../../../../../lib/data';
 
 export async function POST(request: Request, context: { params: { id: string } }) {
   const id = Number(context.params.id);

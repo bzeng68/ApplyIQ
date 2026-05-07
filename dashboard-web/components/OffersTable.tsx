@@ -81,7 +81,7 @@ export default function OffersTable({ mode, minScore = 0, maxScore = 5 }: Props)
       const aValue = a[sortKey];
       const bValue = b[sortKey];
       if (sortKey === 'score') {
-        return ((aValue ?? 0) - (bValue ?? 0)) * dir;
+        return ((Number(aValue) || 0) - (Number(bValue) || 0)) * dir;
       }
       const aText = (aValue ?? '').toString().toLowerCase();
       const bText = (bValue ?? '').toString().toLowerCase();

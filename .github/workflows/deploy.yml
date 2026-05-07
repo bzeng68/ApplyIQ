@@ -1,0 +1,60 @@
+name: Deploy ApplyIQ
+
+on:
+  push:
+    branches: ["main"]
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  REGION: ${{ secrets.GCP_REGION }}
+  WIF_PROVIDER: ${{ secrets.GCP_WIF_PROVIDER }}
+  SERVICE_ACCOUNT: ${{ secrets.GCP_SA_EMAIL }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Auth to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+          service_account: ${{ env.SERVICE_ACCOUNT }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+
+      - name: Configure Docker
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      - name: Build and push dashboard image
+        run: |
+          IMAGE=${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/applyiq/dashboard:${{ github.sha }}
+          gcloud builds submit --tag $IMAGE -f docker/dashboard.Dockerfile .
+          gcloud artifacts docker images add-tag $IMAGE ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/applyiq/dashboard:latest
+
+      - name: Build and push pipeline image
+        run: |
+          IMAGE=${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/applyiq/pipeline:${{ github.sha }}
+          gcloud builds submit --tag $IMAGE -f docker/pipeline.Dockerfile .
+          gcloud artifacts docker images add-tag $IMAGE ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/applyiq/pipeline:latest
+
+      - name: Deploy Cloud Run service
+        run: |
+          gcloud run services update applyiq-dashboard \
+            --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/applyiq/dashboard:${{ github.sha }} \
+            --region ${{ env.REGION }}
+
+      - name: Deploy Cloud Run job
+        run: |
+          gcloud run jobs update applyiq-pipeline \
+            --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/applyiq/pipeline:${{ github.sha }} \
+            --region ${{ env.REGION }}

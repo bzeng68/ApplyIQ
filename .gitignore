@@ -4,9 +4,6 @@ data/applications.md
 data/pipeline.md
 data/evaluations.md
 data/scan-history.tsv
-data/dashboard-offers.json
-data/ui-state.json
-data/jds/*
 reports/*.md
 reports/*.json
 !reports/.gitkeep
@@ -38,8 +35,11 @@ modes/_profile.md
 # Generated
 .resolved-prompt-*
 node_modules/
-dashboard-web/node_modules/
 dashboard-web/.next/
+terraform/**/.terraform/
+terraform/**/*.tfstate
+terraform/**/*.tfstate.*
+terraform/**/terraform.tfvars
 bun.lock
 
 # OS

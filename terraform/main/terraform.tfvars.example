@@ -1,0 +1,19 @@
+project_id = "apply-iq-495519"
+region     = "us-east1"
+
+# Get this from https://console.anthropic.com
+# Go to API keys section and create a new key with appropriate spend limits
+anthropic_api_key = "sk-ant-api03-your-key-here"
+
+# Add more email addresses to allow access to the dashboard
+iap_allowlist = [
+  "zeng.br@northeastern.edu",
+  # "friend@example.com",
+]
+
+# Cron expression for daily evaluation (5pm EST = 17:00 in Eastern time)
+schedule_cron      = "0 17 * * *"
+schedule_timezone  = "America/New_York"
+
+# GitHub repository for CI/CD (used for reference, not automated setup yet)
+github_repo = "bzeng68/ApplyIQ"
