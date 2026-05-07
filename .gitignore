@@ -51,4 +51,8 @@ bun.lock
 .claude/settings.local.json
 .claude/memory/
 career-dashboard
-!dashboard-web/package-lock.json
+
+# Local generated data (populated by pipeline at runtime)
+data/dashboard-offers.json
+data/ui-state.json
+data/jds/
