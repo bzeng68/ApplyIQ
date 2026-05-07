@@ -27,6 +27,12 @@ for profile_dir in "${PROFILES_BASE}"/*/; do
     cp "${UC}/profile.yml" /app/config/profile.yml
   fi
 
+  # Skip if local pipeline already ran and synced fresh data (< 1hr ago)
+  if FRESHNESS_HOURS=1 PIPELINE_PROFILE="${PROFILE_NAME}" GCS_BUCKET="${GCS_BUCKET:-}" node scripts/check-gcs-freshness.mjs; then
+    echo "=== Skipping ${PROFILE_NAME} — local pipeline ran recently, GCS data is fresh ==="
+    continue
+  fi
+
   node scan.mjs
   node scripts/evaluate-new.mjs
   node build-dashboard-data.mjs

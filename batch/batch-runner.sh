@@ -17,14 +17,15 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-BATCH_DIR="$SCRIPT_DIR"
+DATA_ROOT="${DATA_ROOT:-$PROJECT_DIR}"
+BATCH_DIR="$DATA_ROOT/batch"
 INPUT_FILE="$BATCH_DIR/batch-input.tsv"
 STATE_FILE="$BATCH_DIR/batch-state.tsv"
-PROMPT_FILE="$BATCH_DIR/batch-prompt.md"
+PROMPT_FILE="$SCRIPT_DIR/batch-prompt.md"
 LOGS_DIR="$BATCH_DIR/logs"
 TRACKER_DIR="$BATCH_DIR/tracker-additions"
-REPORTS_DIR="$PROJECT_DIR/reports"
-APPLICATIONS_FILE="$PROJECT_DIR/data/applications.md"
+REPORTS_DIR="$DATA_ROOT/reports"
+APPLICATIONS_FILE="$DATA_ROOT/data/applications.md"
 LOCK_FILE="$BATCH_DIR/batch-runner.pid"
 STATE_LOCK_DIR="$BATCH_DIR/.batch-state.lock"
 STATE_LOCK_PID_FILE="$STATE_LOCK_DIR/pid"
@@ -334,7 +335,7 @@ process_offer() {
 
   # Build the prompt with placeholders replaced
   local prompt
-  prompt="Procesa esta oferta de empleo. Ejecuta el pipeline completo: evaluación A-F + report .md + PDF + tracker line."
+  prompt="Process this job offer. Run the full A-B-C-G evaluation and produce the .md report + tracker line."
   prompt="$prompt URL: $url"
   prompt="$prompt JD file: $jd_file"
   prompt="$prompt Report number: $report_num"
@@ -370,7 +371,7 @@ process_offer() {
   # Cleanup resolved prompt
   rm -f "$resolved_prompt"
 
-  local jd_store_dir="$PROJECT_DIR/data/jds"
+  local jd_store_dir="$DATA_ROOT/data/jds"
   mkdir -p "$jd_store_dir"
   if [[ -s "$jd_file" ]]; then
     cp "$jd_file" "$jd_store_dir/${id}.txt"
@@ -412,10 +413,10 @@ process_offer() {
 merge_tracker() {
   echo ""
   echo "=== Merging tracker additions ==="
-  node "$PROJECT_DIR/merge-tracker.mjs"
+  DATA_ROOT="$DATA_ROOT" node "$PROJECT_DIR/merge-tracker.mjs"
   echo ""
   echo "=== Verifying pipeline integrity ==="
-  node "$PROJECT_DIR/verify-pipeline.mjs" || echo "⚠️  Verification found issues (see above)"
+  DATA_ROOT="$DATA_ROOT" node "$PROJECT_DIR/verify-pipeline.mjs" || echo "⚠️  Verification found issues (see above)"
 }
 
 # Print summary
@@ -607,7 +608,7 @@ main() {
 
   echo ""
   echo "=== Building dashboard data ==="
-  node "$PROJECT_DIR/build-dashboard-data.mjs" || echo "⚠️  Dashboard data build failed"
+  DATA_ROOT="$DATA_ROOT" node "$PROJECT_DIR/build-dashboard-data.mjs" || echo "⚠️  Dashboard data build failed"
 
   # Print summary
   print_summary

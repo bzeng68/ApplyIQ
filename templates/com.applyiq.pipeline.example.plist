@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.applyiq.pipeline</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>/path/to/ApplyIQ/scripts/local-pipeline.sh</string>
+  </array>
+
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key>
+    <integer>16</integer>
+    <key>Minute</key>
+    <integer>0</integer>
+  </dict>
+
+  <key>StandardOutPath</key>
+  <string>/Users/your-username/Library/Logs/applyiq/pipeline.log</string>
+
+  <key>StandardErrorPath</key>
+  <string>/Users/your-username/Library/Logs/applyiq/pipeline.err</string>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+    <key>HOME</key>
+    <string>/Users/your-username</string>
+    <key>GCS_BUCKET</key>
+    <string>your-gcs-bucket-name</string>
+    <key>PIPELINE_PROFILE</key>
+    <string>your-profile-name</string>
+  </dict>
+
+  <key>RunAtLoad</key>
+  <false/>
+
+  <key>WorkingDirectory</key>
+  <string>/path/to/ApplyIQ</string>
+</dict>
+</plist>

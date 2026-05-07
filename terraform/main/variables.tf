@@ -23,8 +23,8 @@ variable "iap_allowlist" {
 
 variable "schedule_cron" {
   type        = string
-  default     = "0 17 * * *"
-  description = "Cron expression for daily pipeline job (5pm EST in local time)"
+  default     = "30 16 * * *"
+  description = "Cron expression for daily pipeline job (4:30pm EST — 30 min after local pipeline at 4pm)"
 }
 
 variable "schedule_timezone" {
