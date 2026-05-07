@@ -39,7 +39,22 @@ Edit `portals.yml`:
 - Add companies you want to track in `tracked_companies`
 - Customize `search_queries` for your preferred job boards
 
-### 5. Start using
+### 5. Sync personal files to GCS (required before first cloud pipeline run)
+
+Your personal files (`cv.md`, `portals.yml`, `config/profile.yml`, `modes/_profile.md`) are gitignored and never baked into the container image. The Cloud Run pipeline restores them at startup from the GCS bucket — but only if you've synced them first.
+
+**One-time setup** (repeat whenever you update your CV or profile):
+
+```bash
+export GCS_BUCKET=applyiq-data-apply-iq-495519
+node sync-to-gcs.mjs
+```
+
+Or run `node build-dashboard-data.mjs` with `GCS_BUCKET` set — it syncs automatically at the end.
+
+Without this step, `scan.mjs` will fail (no `portals.yml`) and evaluations will have no candidate context.
+
+### 6. Start using
 
 Open Claude Code in this directory:
 

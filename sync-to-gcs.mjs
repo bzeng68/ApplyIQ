@@ -3,14 +3,15 @@
 /**
  * sync-to-gcs.mjs — Push local pipeline data to GCS
  *
- * Syncs data/, reports/, and batch/ (excluding batch/logs/) to the GCS bucket
- * so the cloud dashboard always reflects the current local state.
+ * Syncs data/, reports/, batch/ (excluding batch/logs/), and user-config/
+ * (cv.md, portals.yml, modes/_profile.md, config/profile.yml,
+ * article-digest.md) to the GCS bucket so Cloud Run has everything it needs.
  *
  * Guard: skips automatically when DATA_ROOT starts with /mnt/ (Cloud Run FUSE
  * mount already writes directly to GCS — no SDK sync needed there).
  *
  * Usage:
- *   node sync-to-gcs.mjs               # sync all three directories
+ *   node sync-to-gcs.mjs               # sync all directories + user config
  *   GCS_BUCKET=my-bucket node sync-to-gcs.mjs
  *
  * Authentication: Application Default Credentials (run `gcloud auth application-default login` once).
@@ -36,6 +37,16 @@ const SYNC_DIRS = [
 
 // Directories inside batch/ to skip (ephemeral logs not useful in cloud)
 const SKIP_SUBDIRS = ['logs'];
+
+// User config files that are gitignored and must be synced explicitly so
+// Cloud Run has candidate context (CV, profile, portals) at runtime.
+const USER_CONFIG_FILES = [
+  { local: path.join(__dirname, 'cv.md'),                    remote: 'user-config/cv.md' },
+  { local: path.join(__dirname, 'portals.yml'),              remote: 'user-config/portals.yml' },
+  { local: path.join(__dirname, 'article-digest.md'),        remote: 'user-config/article-digest.md' },
+  { local: path.join(__dirname, 'modes/_profile.md'),        remote: 'user-config/_profile.md' },
+  { local: path.join(__dirname, 'config/profile.yml'),       remote: 'user-config/profile.yml' },
+];
 
 function collectFiles(dir, baseDir = dir) {
   if (!fs.existsSync(dir)) return [];
@@ -88,6 +99,18 @@ export async function syncToGcs() {
         errors.push(`${destPath}: ${err.message}`);
         skipped++;
       }
+    }
+  }
+
+  // Sync user config files (gitignored, needed by Cloud Run at runtime)
+  for (const { local, remote } of USER_CONFIG_FILES) {
+    if (!fs.existsSync(local)) continue;
+    try {
+      await bucket.upload(local, { destination: remote, resumable: false });
+      uploaded++;
+    } catch (err) {
+      errors.push(`${remote}: ${err.message}`);
+      skipped++;
     }
   }
 
