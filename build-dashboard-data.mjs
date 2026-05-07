@@ -195,7 +195,7 @@ function relativeTime(isoString) {
 }
 
 // Main
-function main() {
+async function main() {
   const reportsDir = path.join(DATA_ROOT, "reports");
   const batchState = parseTSV(path.join(DATA_ROOT, "batch/batch-state.tsv"));
   const batchInput = parseTSV(path.join(DATA_ROOT, "batch/batch-input.tsv"));
@@ -277,6 +277,13 @@ function main() {
   fs.writeFileSync(outputPath, JSON.stringify(offers, null, 2));
 
   console.log(`✅ Built dashboard data: ${offers.length} offers → ${outputPath}`);
+
+  // Sync to GCS when running locally (Cloud Run writes directly via FUSE mount)
+  const isCloudRun = DATA_ROOT.startsWith('/mnt/');
+  if (!isCloudRun && process.env.GCS_BUCKET) {
+    const { syncToGcs } = await import('./sync-to-gcs.mjs');
+    await syncToGcs();
+  }
 }
 
 main();

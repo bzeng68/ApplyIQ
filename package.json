@@ -13,6 +13,7 @@
     "rollback": "node update-system.mjs rollback",
     "liveness": "node check-liveness.mjs",
     "scan": "node scan.mjs",
+    "sync": "node sync-to-gcs.mjs",
     "dashboard": "cd dashboard-web && npm run dev"
   },
   "keywords": [
@@ -26,6 +27,7 @@
   "license": "MIT",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.26.0",
+    "@google-cloud/storage": "^7.11.2",
     "dotenv": "^16.4.5",
     "js-yaml": "^4.1.1",
     "playwright": "^1.58.1"

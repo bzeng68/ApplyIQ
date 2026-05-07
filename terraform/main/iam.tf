@@ -37,6 +37,13 @@ resource "google_secret_manager_secret_iam_member" "pipeline_secret_accessor" {
   member    = "serviceAccount:${google_service_account.pipeline_sa.email}"
 }
 
+# Allow dashboard SA to trigger and monitor Cloud Run pipeline jobs
+resource "google_project_iam_member" "dashboard_run_developer" {
+  project = var.project_id
+  role    = "roles/run.developer"
+  member  = "serviceAccount:${google_service_account.dashboard_sa.email}"
+}
+
 # Allow scheduler SA to invoke the pipeline job using the Cloud Run API
 resource "google_project_iam_member" "scheduler_run_invoker" {
   project = var.project_id

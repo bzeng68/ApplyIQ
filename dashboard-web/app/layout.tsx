@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import NavTabs from '../components/NavTabs';
+import PipelineButton from '../components/PipelineButton';
 
 export const metadata: Metadata = {
   title: 'ApplyIQ Dashboard',
@@ -18,6 +19,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <h1 className="text-2xl font-semibold">ApplyIQ Dashboard</h1>
                 <p className="text-sm text-muted">Review evaluated offers from the batch pipeline.</p>
               </div>
+              <PipelineButton />
             </div>
             <NavTabs />
           </header>
