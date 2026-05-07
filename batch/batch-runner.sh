@@ -330,8 +330,14 @@ process_offer() {
   local date
   date=$(date +%Y-%m-%d)
   local jd_file="/tmp/batch-jd-${id}.txt"
-
-  echo "--- Processing offer #$id: $url (report $report_num, attempt $((retries + 1)))"
+  # Use cached JD from stage-from-pipeline if available — avoids re-fetching
+  local cached_jd="$DATA_ROOT/data/jds/${id}.txt"
+  if [[ -s "$cached_jd" ]]; then
+    cp "$cached_jd" "$jd_file"
+    echo "--- Processing offer #$id: $url (report $report_num, attempt $((retries + 1))) [JD from cache]"
+  else
+    echo "--- Processing offer #$id: $url (report $report_num, attempt $((retries + 1)))"
+  fi
 
   # Build the prompt with placeholders replaced
   local prompt

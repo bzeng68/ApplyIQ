@@ -15,7 +15,7 @@
  *   node scan.mjs --company Cohere # scan a single company
  */
 
-import { readFileSync, writeFileSync, appendFileSync, existsSync, mkdirSync } from 'fs';
+import { readFileSync, writeFileSync, appendFileSync, existsSync, mkdirSync, statSync } from 'fs';
 import path from 'path';
 import yaml from 'js-yaml';
 const parseYaml = yaml.load;
@@ -301,6 +301,15 @@ async function main() {
   const dryRun = args.includes('--dry-run');
   const companyFlag = args.indexOf('--company');
   const filterCompany = companyFlag !== -1 ? args[companyFlag + 1]?.toLowerCase() : null;
+
+  // Cloud-only freshness gate: skip scan if pipeline.md is <12h old
+  if (process.env.CLOUD_PIPELINE === '1' && existsSync(PIPELINE_PATH)) {
+    const ageMs = Date.now() - statSync(PIPELINE_PATH).mtimeMs;
+    if (ageMs < 12 * 60 * 60 * 1000) {
+      console.log(`Skipping scan — pipeline.md is ${(ageMs / 3600000).toFixed(1)}h old (< 12h threshold). Local pipeline ran recently.`);
+      process.exit(0);
+    }
+  }
 
   // 1. Read portals.yml
   if (!existsSync(PORTALS_PATH)) {
