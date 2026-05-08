@@ -35,6 +35,9 @@ type Props = {
   maxScore?: number;
 };
 
+const STORAGE_KEY_DONE = 'applyiq_done_ids';
+const STORAGE_KEY_SKIPPED = 'applyiq_skipped_ids';
+
 export default function OffersTable({ mode, minScore = 0, maxScore = 5 }: Props) {
   const { activeProfile } = useProfile();
   const [offers, setOffers] = useState<Offer[]>([]);
@@ -43,14 +46,32 @@ export default function OffersTable({ mode, minScore = 0, maxScore = 5 }: Props)
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [selectedJd, setSelectedJd] = useState<number | null>(null);
   const [selectedReport, setSelectedReport] = useState<string | null>(null);
+  const [doneIds, setDoneIds] = useState<Set<number>>(new Set());
+  const [skippedIds, setSkippedIds] = useState<Set<number>>(new Set());
+
+  // Load done/skipped state from localStorage
+  useEffect(() => {
+    const storedDone = localStorage.getItem(STORAGE_KEY_DONE);
+    const storedSkipped = localStorage.getItem(STORAGE_KEY_SKIPPED);
+    if (storedDone) setDoneIds(new Set(JSON.parse(storedDone)));
+    if (storedSkipped) setSkippedIds(new Set(JSON.parse(storedSkipped)));
+  }, []);
 
   useEffect(() => {
     if (!activeProfile) return;
     fetch(`/api/offers?profile=${encodeURIComponent(activeProfile)}`)
       .then((res) => res.json())
-      .then((data) => setOffers(data))
+      .then((data) => {
+        // Apply localStorage state to loaded offers
+        const withState = data.map((offer: Offer) => ({
+          ...offer,
+          done: doneIds.has(offer.id),
+          skipped: skippedIds.has(offer.id),
+        }));
+        setOffers(withState);
+      })
       .catch(() => setOffers([]));
-  }, [activeProfile]);
+  }, [activeProfile, doneIds, skippedIds]);
 
   const filtered = useMemo(() => {
     const trimmed = query.trim().toLowerCase();
@@ -106,6 +127,13 @@ export default function OffersTable({ mode, minScore = 0, maxScore = 5 }: Props)
 
   function toggleDone(id: number, done: boolean) {
     setOffers((prev) => prev.map((offer) => (offer.id === id ? { ...offer, done } : offer)));
+    // Persist to localStorage
+    const updated = new Set(doneIds);
+    if (done) updated.add(id);
+    else updated.delete(id);
+    setDoneIds(updated);
+    localStorage.setItem(STORAGE_KEY_DONE, JSON.stringify(Array.from(updated)));
+    // Notify backend (non-critical)
     fetch(`/api/offers/${id}/done`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -115,6 +143,13 @@ export default function OffersTable({ mode, minScore = 0, maxScore = 5 }: Props)
 
   function toggleSkip(id: number, skipped: boolean) {
     setOffers((prev) => prev.map((offer) => (offer.id === id ? { ...offer, skipped } : offer)));
+    // Persist to localStorage
+    const updated = new Set(skippedIds);
+    if (skipped) updated.add(id);
+    else updated.delete(id);
+    setSkippedIds(updated);
+    localStorage.setItem(STORAGE_KEY_SKIPPED, JSON.stringify(Array.from(updated)));
+    // Notify backend (non-critical)
     fetch(`/api/offers/${id}/skip`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
