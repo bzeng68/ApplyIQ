@@ -67,6 +67,25 @@ async function syncProfiles(bucket, errors) {
         errors.push(`${dest}: ${err.message}`);
       }
     }
+
+    // Sync profile data and reports directories (evaluation output)
+    const dataDirs = [
+      { local: path.join(dir, 'data'),    remote: `profiles/${name}/data` },
+      { local: path.join(dir, 'reports'), remote: `profiles/${name}/reports` },
+    ];
+    for (const { local, remote } of dataDirs) {
+      if (!fs.existsSync(local)) continue;
+      const files = collectFiles(local);
+      for (const file of files) {
+        const dest = path.join(remote, file.relPath).replace(/\\/g, '/');
+        try {
+          await bucket.upload(file.fullPath, { destination: dest, resumable: false });
+          uploaded++;
+        } catch (err) {
+          errors.push(`${dest}: ${err.message}`);
+        }
+      }
+    }
   }
   return uploaded;
 }
