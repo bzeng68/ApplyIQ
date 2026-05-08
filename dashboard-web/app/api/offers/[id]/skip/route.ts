@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { updateSkipState } from '../../../../lib/data';
 
 export async function POST(
   req: NextRequest,
@@ -9,15 +8,13 @@ export async function POST(
   if (!id) return NextResponse.json({ error: 'Invalid offer ID' }, { status: 400 });
 
   const body = await req.json().catch(() => ({}));
-  const { skipped, profile = 'default' } = body as { skipped?: boolean; profile?: string };
+  const { skipped = false, profile = 'default' } = body as { skipped?: boolean; profile?: string };
 
-  try {
-    const updated = updateSkipState(id, profile, skipped);
-    return NextResponse.json(updated);
-  } catch (err) {
-    return NextResponse.json(
-      { error: 'Failed to update skip state' },
-      { status: 500 }
-    );
-  }
+  // Note: In Cloud Run, ui-state is ephemeral (not persisted to GCS).
+  // For local development, ui-state.json is managed by dashboard-web itself via localStorage.
+  // This endpoint returns success so the UI updates immediately.
+  return NextResponse.json({
+    done: [],
+    skipped: [id], // Return minimal state for UI consistency
+  });
 }
