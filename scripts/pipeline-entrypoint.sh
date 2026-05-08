@@ -35,9 +35,13 @@ for profile_dir in "${PROFILES_BASE}"/*/; do
 
   node scan.mjs
   node scripts/evaluate-new.mjs
+  node merge-tracker.mjs
   node build-dashboard-data.mjs
 
   echo "=== Done: ${PROFILE_NAME} ==="
 done
+
+# Sync final results to GCS (in case Cloud Run FUSE mount isn't 100% real-time)
+node sync-to-gcs.mjs
 
 echo "All profiles complete: $(date -u +%FT%TZ)"
