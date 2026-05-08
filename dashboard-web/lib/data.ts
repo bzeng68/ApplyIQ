@@ -22,12 +22,20 @@ function profilePaths(profile: string) {
 
 export function listProfiles(): string[] {
   const dir = path.join(BASE_ROOT, 'profiles');
-  if (!fs.existsSync(dir)) return [];
-  return fs
-    .readdirSync(dir, { withFileTypes: true })
-    .filter((e) => e.isDirectory())
-    .map((e) => e.name)
-    .sort();
+  if (fs.existsSync(dir)) {
+    const profiles = fs
+      .readdirSync(dir, { withFileTypes: true })
+      .filter((e) => e.isDirectory())
+      .map((e) => e.name)
+      .sort();
+    if (profiles.length > 0) return profiles;
+  }
+  // Fallback: if no profiles dir or empty, check for root data/ (backward compat)
+  const rootDataFile = path.join(BASE_ROOT, 'data', 'dashboard-offers.json');
+  if (fs.existsSync(rootDataFile)) {
+    return ['default'];
+  }
+  return [];
 }
 
 export type Offer = {
@@ -115,6 +123,7 @@ export function loadDashboardOffers(profile: string): Offer[] {
   const doneSet = new Set((uiState.done || []).map((id: number) => Number(id)));
   const skippedSet = new Set((uiState.skipped || []).map((id: number) => Number(id)));
 
+  // Try profile-specific path first
   if (fs.existsSync(p.DASHBOARD_FILE)) {
     try {
       const raw = JSON.parse(fs.readFileSync(p.DASHBOARD_FILE, 'utf8')) as Offer[];
@@ -124,7 +133,22 @@ export function loadDashboardOffers(profile: string): Offer[] {
         skipped: skippedSet.has(Number(offer.id)),
       }));
     } catch {
-      return buildOffers(p);
+      // Fall through to buildOffers
+    }
+  }
+
+  // Fallback to root data/ path for backward compat (e.g., Cloud Run FUSE mount)
+  const rootDashboardFile = path.join(BASE_ROOT, 'data', 'dashboard-offers.json');
+  if (fs.existsSync(rootDashboardFile)) {
+    try {
+      const raw = JSON.parse(fs.readFileSync(rootDashboardFile, 'utf8')) as Offer[];
+      return raw.map((offer) => ({
+        ...offer,
+        done: doneSet.has(Number(offer.id)),
+        skipped: skippedSet.has(Number(offer.id)),
+      }));
+    } catch {
+      // Fall through to buildOffers
     }
   }
 
