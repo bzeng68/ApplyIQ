@@ -87,31 +87,31 @@
 | 93 | 2026-05-06 | Scale AI | Software Engineer, Gen AI | 3.0/5 | SKIP | ❌ |  | Scale AI Software Engineer, Gen AI |
 | 100 | 2026-05-06 | Alchemy | Software Engineer - Solutions | 3.0/5 | SKIP | ❌ |  | Alchemy Software Engineer - Solutions |
 | 101 | 2026-05-06 | Alchemy | Software Engineer (Backend) - Distributed Systems | 3.0/5 | SKIP | ❌ |  | Alchemy Software Engineer (Backend) - |
-| 102 | 2026-05-06 | Braze | Engineering Manager, Platform Engineering | 0/5 | SKIP | ❌ |  | Braze Engineering Manager, Platform |
+| 102 | 2026-05-08 | Braze | Engineering Manager, Platform Engineering | 1.9/5 | SKIP | ❌ | [175](reports/175-braze-2026-05-08.md) | Re-eval 2026-05-08 (0→1.9). Batch evaluation |
 | 103 | 2026-05-06 | Asana | iOS, Software Engineer | 3.0/5 | SKIP | ❌ |  | Asana iOS, Software Engineer |
 | 104 | 2026-05-06 | Spotify | Backend Engineer  - Data Infrastructure | 3.0/5 | SKIP | ❌ |  | Spotify Backend Engineer  - Data Infra |
-| 105 | 2026-05-06 | Spotify | Backend Engineer - Music | 3.0/5 | SKIP | ❌ |  | Spotify Backend Engineer - Music |
+| 105 | 2026-05-08 | Spotify | Backend Engineer - Platform Developer Experience | 3.6/5 | SKIP | ❌ | [178](reports/178-spotify-2026-05-08.md) | Re-eval 2026-05-08 (3→3.6). Batch evaluation |
 | 106 | 2026-05-06 | Spotify | Backend Engineer - Platform Developer Experience | 3.0/5 | SKIP | ❌ |  | Spotify Backend Engineer - Platform De |
 | 107 | 2026-05-06 | Spotify | Backend Engineer, Music | 3.0/5 | SKIP | ❌ |  | Spotify Backend Engineer, Music |
 | 108 | 2026-05-06 | Spotify | Backend Engineer, Podcast | 3.0/5 | SKIP | ❌ |  | Spotify Backend Engineer, Podcast |
 | 109 | 2026-05-06 | Spotify | Fullstack Engineer - Music | 3.0/5 | SKIP | ❌ |  | Spotify Fullstack Engineer - Music |
-| 110 | 2026-05-06 | Palantir | Backend Software Engineer - Application Development | 3.0/5 | SKIP | ❌ |  | Palantir Backend Software Engineer - Ap |
+| 110 | 2026-05-08 | Palantir | Backend Software Engineer - Application Development | 3.9/5 | SKIP | ❌ | [182](reports/182-palantir-2026-05-08.md) | Re-eval 2026-05-08 (3→3.9). Batch evaluation |
 | 111 | 2026-05-06 | Palantir | Backend Software Engineer - Defense | 3.0/5 | SKIP | ❌ |  | Palantir Backend Software Engineer - De |
-| 112 | 2026-05-06 | Palantir | Backend Software Engineer - Infrastructure | 3.0/5 | SKIP | ❌ |  | Palantir Backend Software Engineer - In |
+| 112 | 2026-05-08 | Palantir | Software Engineer, New Grad - Infrastructure | 5.0/5 | SKIP | ❌ | [200](reports/200-palantir-2026-05-08.md) | Re-eval 2026-05-08 (3→5). Batch evaluation |
 | 113 | 2026-05-06 | Palantir | Backend Software Engineer - Infrastructure, Foundations | 3.0/5 | SKIP | ❌ |  | Palantir Backend Software Engineer - In |
-| 114 | 2026-05-06 | Palantir | Forward Deployed Infrastructure Engineer - US Government | 3.0/5 | SKIP | ❌ |  | Palantir Forward Deployed Infrastructur |
+| 114 | 2026-05-08 | Palantir | Forward Deployed Infrastructure Engineer - US Government | 3.3/5 | SKIP | ❌ | [186](reports/186-palantir-2026-05-08.md) | Re-eval 2026-05-08 (3→3.3). Batch evaluation |
 | 115 | 2026-05-06 | Palantir | Forward Deployed Reliability Engineer | 3.0/5 | SKIP | ❌ |  | Palantir Forward Deployed Reliability E |
 | 116 | 2026-05-06 | Palantir | Forward Deployed Software Engineer | 3.0/5 | SKIP | ❌ |  | Palantir Forward Deployed Software Engi |
 | 117 | 2026-05-06 | Palantir | Forward Deployed Software Engineer - US Government | 3.0/5 | SKIP | ❌ |  | Palantir Forward Deployed Software Engi |
 | 118 | 2026-05-06 | Palantir | Forward Deployed Software Engineer - Warp Speed | 3.0/5 | SKIP | ❌ |  | Palantir Forward Deployed Software Engi |
 | 119 | 2026-05-06 | Palantir | Full Stack Software Engineer - Application Development | 3.0/5 | SKIP | ❌ |  | Palantir Full Stack Software Engineer - |
 | 120 | 2026-05-06 | Palantir | Product Designer, New Grad - US Government | 4.2/5 | Evaluated | ❌ |  | Palantir Product Designer, New Grad - U |
-| 121 | 2026-05-06 | Palantir | Software Engineer - Apollo Platform | 3.0/5 | SKIP | ❌ |  | Palantir Software Engineer - Apollo Pla |
+| 121 | 2026-05-08 | Palantir | Software Engineer - Apollo Platform | 3.9/5 | SKIP | ❌ | [193](reports/193-palantir-2026-05-08.md) | Re-eval 2026-05-08 (3→3.9). Batch evaluation |
 | 122 | 2026-05-06 | Palantir | Software Engineer - Apollo Systems | 3.0/5 | SKIP | ❌ |  | Palantir Software Engineer - Apollo Sys |
-| 123 | 2026-05-06 | Palantir | Software Engineer - Developer Productivity | 3.0/5 | SKIP | ❌ |  | Palantir Software Engineer - Developer |
+| 123 | 2026-05-08 | Palantir | Software Engineer - Developer Productivity | 3.9/5 | SKIP | ❌ | [195](reports/195-palantir-2026-05-08.md) | Re-eval 2026-05-08 (3→3.9). Batch evaluation |
 | 124 | 2026-05-06 | Palantir | Software Engineer - Environment Platform | 3.0/5 | SKIP | ❌ |  | Palantir Software Engineer - Environmen |
 | 125 | 2026-05-06 | Palantir | Software Engineer - Frontend Developer Productivity | 3.0/5 | SKIP | ❌ |  | Palantir Software Engineer - Frontend D |
-| 126 | 2026-05-06 | Palantir | Software Engineer - Mission Manager | 0/5 | SKIP | ❌ |  | Palantir Software Engineer - Mission Ma |
+| 126 | 2026-05-08 | Palantir | Software Engineer - Mission Manager | 3.6/5 | SKIP | ❌ | [198](reports/198-palantir-2026-05-08.md) | Re-eval 2026-05-08 (0→3.6). Batch evaluation |
 | 127 | 2026-05-06 | Palantir | Software Engineer, New Grad | 4.2/5 | Evaluated | ❌ |  | Palantir Software Engineer, New Grad |
 | 128 | 2026-05-06 | Palantir | Software Engineer, New Grad - Infrastructure | 4.2/5 | Evaluated | ❌ |  | Palantir Software Engineer, New Grad - |
 | 129 | 2026-05-06 | Palantir | Software Engineer, New Grad - Production Infrastructure | 4.2/5 | Evaluated | ❌ |  | Palantir Software Engineer, New Grad - |
