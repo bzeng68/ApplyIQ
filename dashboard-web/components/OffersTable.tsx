@@ -9,6 +9,17 @@ import RemoteBadge from './RemoteBadge';
 import { formatRelativeTime } from '../lib/relative-time';
 import { useProfile } from '../lib/profile-context';
 
+// Response validation
+function validateOffers(data: unknown): data is Offer[] {
+  if (!Array.isArray(data)) return false;
+  return data.every(
+    (item) =>
+      typeof item.id === 'number' &&
+      typeof item.url === 'string' &&
+      typeof item.company === 'string'
+  );
+}
+
 export type Offer = {
   id: number;
   url: string;
@@ -48,29 +59,58 @@ export default function OffersTable({ mode, minScore = 0, maxScore = 5 }: Props)
   const [selectedReport, setSelectedReport] = useState<string | null>(null);
   const [doneIds, setDoneIds] = useState<Set<number>>(new Set());
   const [skippedIds, setSkippedIds] = useState<Set<number>>(new Set());
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  // Load done/skipped state from localStorage
+  // Load done/skipped state from localStorage with error handling
   useEffect(() => {
-    const storedDone = localStorage.getItem(STORAGE_KEY_DONE);
-    const storedSkipped = localStorage.getItem(STORAGE_KEY_SKIPPED);
-    if (storedDone) setDoneIds(new Set(JSON.parse(storedDone)));
-    if (storedSkipped) setSkippedIds(new Set(JSON.parse(storedSkipped)));
+    try {
+      const storedDone = localStorage.getItem(STORAGE_KEY_DONE);
+      const storedSkipped = localStorage.getItem(STORAGE_KEY_SKIPPED);
+      if (storedDone) {
+        const parsed = JSON.parse(storedDone);
+        if (Array.isArray(parsed)) setDoneIds(new Set(parsed));
+      }
+      if (storedSkipped) {
+        const parsed = JSON.parse(storedSkipped);
+        if (Array.isArray(parsed)) setSkippedIds(new Set(parsed));
+      }
+    } catch (err) {
+      // localStorage corrupted, start fresh
+      console.warn('Failed to parse stored ui-state:', err);
+      localStorage.removeItem(STORAGE_KEY_DONE);
+      localStorage.removeItem(STORAGE_KEY_SKIPPED);
+    }
   }, []);
 
   useEffect(() => {
     if (!activeProfile) return;
+    setLoading(true);
+    setError(null);
+
     fetch(`/api/offers?profile=${encodeURIComponent(activeProfile)}`)
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) throw new Error(`API error: ${res.status}`);
+        return res.json();
+      })
       .then((data) => {
+        if (!validateOffers(data)) {
+          throw new Error('Invalid offers data format');
+        }
         // Apply localStorage state to loaded offers
-        const withState = data.map((offer: Offer) => ({
+        const withState = data.map((offer) => ({
           ...offer,
           done: doneIds.has(offer.id),
           skipped: skippedIds.has(offer.id),
         }));
         setOffers(withState);
       })
-      .catch(() => setOffers([]));
+      .catch((err) => {
+        console.error('Failed to load offers:', err);
+        setError('Failed to load offers. Please refresh the page.');
+        setOffers([]);
+      })
+      .finally(() => setLoading(false));
   }, [activeProfile, doneIds, skippedIds]);
 
   const filtered = useMemo(() => {
@@ -126,41 +166,84 @@ export default function OffersTable({ mode, minScore = 0, maxScore = 5 }: Props)
   }
 
   function toggleDone(id: number, done: boolean) {
-    setOffers((prev) => prev.map((offer) => (offer.id === id ? { ...offer, done } : offer)));
-    // Persist to localStorage
-    const updated = new Set(doneIds);
-    if (done) updated.add(id);
-    else updated.delete(id);
-    setDoneIds(updated);
-    localStorage.setItem(STORAGE_KEY_DONE, JSON.stringify(Array.from(updated)));
-    // Notify backend (non-critical)
-    fetch(`/api/offers/${id}/done`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ done, profile: activeProfile }),
-    }).catch(() => null);
+    try {
+      // Optimistic UI update
+      setOffers((prev) => prev.map((offer) => (offer.id === id ? { ...offer, done } : offer)));
+
+      // Persist to localStorage (primary storage)
+      const updated = new Set(doneIds);
+      if (done) updated.add(id);
+      else updated.delete(id);
+      setDoneIds(updated);
+      localStorage.setItem(STORAGE_KEY_DONE, JSON.stringify(Array.from(updated)));
+
+      // Notify backend (non-critical, fire-and-forget)
+      fetch(`/api/offers/${id}/done`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ done, profile: activeProfile }),
+      }).catch(() => null);
+    } catch (err) {
+      console.error('Failed to toggle done state:', err);
+      setError('Failed to save state');
+    }
   }
 
   function toggleSkip(id: number, skipped: boolean) {
-    setOffers((prev) => prev.map((offer) => (offer.id === id ? { ...offer, skipped } : offer)));
-    // Persist to localStorage
-    const updated = new Set(skippedIds);
-    if (skipped) updated.add(id);
-    else updated.delete(id);
-    setSkippedIds(updated);
-    localStorage.setItem(STORAGE_KEY_SKIPPED, JSON.stringify(Array.from(updated)));
-    // Notify backend (non-critical)
-    fetch(`/api/offers/${id}/skip`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ skipped, profile: activeProfile }),
-    }).catch(() => null);
+    try {
+      // Optimistic UI update
+      setOffers((prev) => prev.map((offer) => (offer.id === id ? { ...offer, skipped } : offer)));
+
+      // Persist to localStorage (primary storage)
+      const updated = new Set(skippedIds);
+      if (skipped) updated.add(id);
+      else updated.delete(id);
+      setSkippedIds(updated);
+      localStorage.setItem(STORAGE_KEY_SKIPPED, JSON.stringify(Array.from(updated)));
+
+      // Notify backend (non-critical, fire-and-forget)
+      fetch(`/api/offers/${id}/skip`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ skipped, profile: activeProfile }),
+      }).catch(() => null);
+    } catch (err) {
+      console.error('Failed to toggle skip state:', err);
+      setError('Failed to save state');
+    }
+  }
+
+  if (error) {
+    return (
+      <div className="card p-6">
+        <div className="flex items-center gap-2 text-red-500">
+          <span>⚠️</span>
+          <div>
+            <p className="font-semibold">{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-2 text-sm underline hover:opacity-80"
+            >
+              Reload page
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="card p-6">
+        <p className="text-muted">Loading offers...</p>
+      </div>
+    );
   }
 
   if (offers.length === 0) {
     return (
       <div className="card p-6">
-        <p className="text-muted">No evaluated offers yet. Run `bash batch/batch-runner.sh` to evaluate.</p>
+        <p className="text-muted">No evaluated offers yet. Run the local pipeline to evaluate new offers.</p>
       </div>
     );
   }
