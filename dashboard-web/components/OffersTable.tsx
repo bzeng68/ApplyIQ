@@ -62,48 +62,60 @@ export default function OffersTable({ mode, minScore = 0, maxScore = 5 }: Props)
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Load done/skipped state from localStorage with error handling
-  useEffect(() => {
-    try {
-      const storedDone = localStorage.getItem(STORAGE_KEY_DONE);
-      const storedSkipped = localStorage.getItem(STORAGE_KEY_SKIPPED);
-      if (storedDone) {
-        const parsed = JSON.parse(storedDone);
-        if (Array.isArray(parsed)) setDoneIds(new Set(parsed));
-      }
-      if (storedSkipped) {
-        const parsed = JSON.parse(storedSkipped);
-        if (Array.isArray(parsed)) setSkippedIds(new Set(parsed));
-      }
-    } catch (err) {
-      // localStorage corrupted, start fresh
-      console.warn('Failed to parse stored ui-state:', err);
-      localStorage.removeItem(STORAGE_KEY_DONE);
-      localStorage.removeItem(STORAGE_KEY_SKIPPED);
-    }
-  }, []);
-
+  // On profile change: fetch server state (GCS-backed), merge with localStorage, load offers
   useEffect(() => {
     if (!activeProfile) return;
     setLoading(true);
     setError(null);
 
-    fetch(`/api/offers?profile=${encodeURIComponent(activeProfile)}`)
-      .then((res) => {
-        if (!res.ok) throw new Error(`API error: ${res.status}`);
-        return res.json();
-      })
-      .then((data) => {
-        if (!validateOffers(data)) {
-          throw new Error('Invalid offers data format');
-        }
-        // Apply localStorage state to loaded offers
-        const withState = data.map((offer) => ({
-          ...offer,
-          done: doneIds.has(offer.id),
-          skipped: skippedIds.has(offer.id),
-        }));
-        setOffers(withState);
+    // Read localStorage optimistically while waiting for server
+    let localDone: number[] = [];
+    let localSkipped: number[] = [];
+    try {
+      const storedDone = localStorage.getItem(STORAGE_KEY_DONE);
+      const storedSkipped = localStorage.getItem(STORAGE_KEY_SKIPPED);
+      if (storedDone) localDone = JSON.parse(storedDone) || [];
+      if (storedSkipped) localSkipped = JSON.parse(storedSkipped) || [];
+    } catch {
+      localStorage.removeItem(STORAGE_KEY_DONE);
+      localStorage.removeItem(STORAGE_KEY_SKIPPED);
+    }
+
+    Promise.all([
+      fetch(`/api/offers?profile=${encodeURIComponent(activeProfile)}`).then((r) => {
+        if (!r.ok) throw new Error(`API error: ${r.status}`);
+        return r.json();
+      }),
+      fetch(`/api/ui-state?profile=${encodeURIComponent(activeProfile)}`).then((r) =>
+        r.ok ? r.json() : { done: [], skipped: [] }
+      ).catch(() => ({ done: [], skipped: [] })),
+    ])
+      .then(([offersData, serverState]) => {
+        if (!validateOffers(offersData)) throw new Error('Invalid offers data format');
+
+        // Merge server state (source of truth) with localStorage (local cache)
+        const mergedDone = new Set<number>([
+          ...(serverState.done || []).map(Number),
+          ...localDone.map(Number),
+        ]);
+        const mergedSkipped = new Set<number>([
+          ...(serverState.skipped || []).map(Number),
+          ...localSkipped.map(Number),
+        ]);
+
+        // Persist merged state back to localStorage
+        localStorage.setItem(STORAGE_KEY_DONE, JSON.stringify(Array.from(mergedDone)));
+        localStorage.setItem(STORAGE_KEY_SKIPPED, JSON.stringify(Array.from(mergedSkipped)));
+
+        setDoneIds(mergedDone);
+        setSkippedIds(mergedSkipped);
+        setOffers(
+          offersData.map((offer: Offer) => ({
+            ...offer,
+            done: mergedDone.has(offer.id),
+            skipped: mergedSkipped.has(offer.id),
+          }))
+        );
       })
       .catch((err) => {
         console.error('Failed to load offers:', err);
@@ -111,7 +123,7 @@ export default function OffersTable({ mode, minScore = 0, maxScore = 5 }: Props)
         setOffers([]);
       })
       .finally(() => setLoading(false));
-  }, [activeProfile, doneIds, skippedIds]);
+  }, [activeProfile]);
 
   const filtered = useMemo(() => {
     const trimmed = query.trim().toLowerCase();
@@ -166,51 +178,37 @@ export default function OffersTable({ mode, minScore = 0, maxScore = 5 }: Props)
   }
 
   function toggleDone(id: number, done: boolean) {
-    try {
-      // Optimistic UI update
-      setOffers((prev) => prev.map((offer) => (offer.id === id ? { ...offer, done } : offer)));
+    // Optimistic UI update
+    setOffers((prev) => prev.map((offer) => (offer.id === id ? { ...offer, done } : offer)));
+    const updated = new Set(doneIds);
+    if (done) updated.add(id);
+    else updated.delete(id);
+    setDoneIds(updated);
+    localStorage.setItem(STORAGE_KEY_DONE, JSON.stringify(Array.from(updated)));
 
-      // Persist to localStorage (primary storage)
-      const updated = new Set(doneIds);
-      if (done) updated.add(id);
-      else updated.delete(id);
-      setDoneIds(updated);
-      localStorage.setItem(STORAGE_KEY_DONE, JSON.stringify(Array.from(updated)));
-
-      // Notify backend (non-critical, fire-and-forget)
-      fetch(`/api/offers/${id}/done`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ done, profile: activeProfile }),
-      }).catch(() => null);
-    } catch (err) {
-      console.error('Failed to toggle done state:', err);
-      setError('Failed to save state');
-    }
+    // Persist to server (GCS-backed, cross-device)
+    fetch(`/api/offers/${id}/done`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ done, profile: activeProfile }),
+    }).catch((err) => console.error('Failed to persist done state to server:', err));
   }
 
   function toggleSkip(id: number, skipped: boolean) {
-    try {
-      // Optimistic UI update
-      setOffers((prev) => prev.map((offer) => (offer.id === id ? { ...offer, skipped } : offer)));
+    // Optimistic UI update
+    setOffers((prev) => prev.map((offer) => (offer.id === id ? { ...offer, skipped } : offer)));
+    const updated = new Set(skippedIds);
+    if (skipped) updated.add(id);
+    else updated.delete(id);
+    setSkippedIds(updated);
+    localStorage.setItem(STORAGE_KEY_SKIPPED, JSON.stringify(Array.from(updated)));
 
-      // Persist to localStorage (primary storage)
-      const updated = new Set(skippedIds);
-      if (skipped) updated.add(id);
-      else updated.delete(id);
-      setSkippedIds(updated);
-      localStorage.setItem(STORAGE_KEY_SKIPPED, JSON.stringify(Array.from(updated)));
-
-      // Notify backend (non-critical, fire-and-forget)
-      fetch(`/api/offers/${id}/skip`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ skipped, profile: activeProfile }),
-      }).catch(() => null);
-    } catch (err) {
-      console.error('Failed to toggle skip state:', err);
-      setError('Failed to save state');
-    }
+    // Persist to server (GCS-backed, cross-device)
+    fetch(`/api/offers/${id}/skip`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ skipped, profile: activeProfile }),
+    }).catch((err) => console.error('Failed to persist skip state to server:', err));
   }
 
   if (error) {

@@ -56,6 +56,10 @@ export type Offer = {
   skipped?: boolean;
 };
 
+export function loadUiStateForProfile(profile: string) {
+  return loadUiState(profilePaths(profile).UI_STATE_FILE);
+}
+
 function loadUiState(uiStateFile: string) {
   if (!fs.existsSync(uiStateFile)) return { done: [], skipped: [] };
   try {
