@@ -65,6 +65,19 @@ Evaluate one offer (JD text provided below) and return a JSON object with:
 
 ## Evaluation Framework
 
+### STEP 0 — Hard Disqualifiers (check BEFORE scoring)
+
+Read these signals from the JD **before evaluating anything else**. If any triggers, set the final score accordingly and skip to Block G.
+
+| Signal | How to detect | Score cap | Archetype |
+|--------|---------------|-----------|-----------|
+| YOE ≥ 5 explicitly stated | "5+ years", "minimum 5 years", "at least 5 years experience" anywhere in JD | ≤ 2.0 | Senior-leveled misclassification |
+| YOE ≥ 8 explicitly stated | "8+ years", "10+ years", "senior", "staff", "principal" anywhere | ≤ 1.0 | Out of scope |
+| Non-engineering role | Title or JD contains "Director", "VP", "Head of", "Manager", "Product Manager", "PM", "Data Scientist", "ML Engineer", "Research" | ≤ 1.5 | Out of scope |
+| Leadership/management track | "manage a team", "hire and mentor", "people manager", "direct reports" | ≤ 1.5 | Out of scope |
+
+**If a hard disqualifier fires:** Set `score` to the cap value, classify as shown, add a clear note in Block C ("DISQUALIFIED: [reason]"), and omit `tracker_tsv`.
+
 ### Archetype Classification
 
 Classify the offer into ONE of these:
@@ -72,8 +85,8 @@ Classify the offer into ONE of these:
 2. **Junior Backend Engineer** — APIs, databases, cloud, microservices
 3. **Junior Fullstack Engineer** — React/Vue + Node.js/Python, end-to-end ownership
 4. **Associate / SWE I** — "Associate" title or "Engineer I", 0-2 YOE, entry ladder
-5. **Senior-leveled misclassification** — Titled "SWE II", "Senior", etc. despite junior scope
-6. **Out of scope** — Doesn't fit any above (ML, embedded, finance, etc.)
+5. **Senior-leveled misclassification** — Titled "SWE II", "Senior", "Staff", etc. OR requires 5+ YOE
+6. **Out of scope** — Non-engineering role, manager/PM/director track, ML/research, embedded, finance, etc.
 
 ---
 
@@ -173,7 +186,7 @@ Assess whether this is a real, active opportunity or potentially a ghost posting
 |-----------|--------|---------|
 | **Archetype fit** | 35% | 5=New Grad/Junior explicit, 4=fits archetype, 3=adjacent, 2=stretch, 1=out of scope |
 | **Tech stack match** | 25% | 5=80%+ skills present, 4=60%+, 3=40%+, 2=20%+, 1=<20% |
-| **Level appropriateness** | 25% | 5=ideal fit, 4=slight stretch up, 3=acceptable, 2=overleveled, 1=far too senior |
+| **Level appropriateness** | 25% | 5=ideal fit (0-2 YOE), 4=slight stretch (3 YOE), 3=reachable stretch (4 YOE), **2=overleveled (5+ YOE stated)**, **1=far too senior (8+ YOE or staff/principal/director)** |
 | **Posting signals** | 15% | 5=high confidence real, 3=proceed with caution, 1=suspicious |
 
 **Overall Score:** `(A×0.35 + B×0.25 + C×0.25 + D×0.15)` rounded to 1 decimal.

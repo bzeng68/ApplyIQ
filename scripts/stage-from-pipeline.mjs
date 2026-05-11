@@ -36,7 +36,8 @@ const YOE_PATTERNS = [
   /(\d+)\s*\+?\s*years?\s+of\s+(?:professional\s+)?(?:software\s+)?(?:engineering|experience)/gi,
   /(\d+)\s*\+?\s*years?\s+(?:experience|exp)/gi,
   /(\d+)-(\d+)\s*years?/gi,
-  /(?:minimum|at least|requires?)\s+(\d+)\s+years?/gi,
+  /(?:minimum|at least|requires?)\s+(\d+)\+?\s*years?/gi, // fixed: allow "5+" format
+  /(\d+)\+\s*years?\s+of/gi,                               // catchall: "N+ years of X" (any noun)
 ];
 
 function extractYoe(text) {

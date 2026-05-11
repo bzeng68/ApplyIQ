@@ -4,7 +4,20 @@ Cuando el candidato paste una oferta (URL o texto JD), evalúa SIEMPRE con los 4
 
 ---
 
-## Paso 0 — Detección de Arquetipo
+## Paso 0 — Hard Disqualifiers (verificar ANTES de cualquier análisis)
+
+Lee estas señales en el JD **antes de clasificar el arquetipo**. Si alguna aplica, descalifica inmediatamente.
+
+| Señal | Cómo detectar | Score máximo | Acción |
+|-------|---------------|--------------|--------|
+| YOE ≥ 5 explícito | "5+ years", "at least 5 years", "minimum 5 years" en el JD | ≤ 2.0 | Clasifica como Senior-leveled, señala en Bloque C |
+| YOE ≥ 8 o seniority alto | "8+ years", "10+ years", "Staff", "Principal", "Senior" en título | ≤ 1.0 | Out of Scope |
+| Rol no-engineering | "Director", "VP", "Head of", "Manager", "Product Manager", "PM", "Data Scientist", "ML Engineer", "Research" en título | ≤ 1.5 | Out of Scope |
+| Track de liderazgo/gestión | "manage a team", "hire and mentor", "people manager", "direct reports" en JD | ≤ 1.5 | Out of Scope |
+
+**Si hay disqualifier:** Indica claramente en Bloque C ("DESCALIFICADO: [razón]") y recomienda no aplicar.
+
+## Paso 1 — Detección de Arquetipo
 
 Clasifica la oferta en UNO de estos arquetipos (el que más aplica):
 
@@ -12,8 +25,8 @@ Clasifica la oferta en UNO de estos arquetipos (el que más aplica):
 2. **Junior Backend Engineer** — APIs, bases de datos, cloud, microservicios
 3. **Junior Fullstack Engineer** — React/Vue + Node.js/Python, ownership end-to-end
 4. **Associate / SWE I** — Título "Associate" o "Engineer I", 0-2 YOE, entrada en ladder
-5. **Overleveled Misclassification** — Titled "SWE II", "Senior", etc. pero scope junior
-6. **Out of Scope** — No encaja en ninguno (ML, embedded, finance, etc.)
+5. **Senior-leveled Misclassification** — Título "SWE II", "Senior", "Staff" etc., O requiere 5+ YOE
+6. **Out of Scope** — Rol no-engineering, track PM/Director/Manager, ML/research, embedded, finance, etc.
 
 Esto determina:
 - Qué proof points priorizar en Bloque B
@@ -77,9 +90,16 @@ Para cada gap (skill que falta en Bryan):
 
 ### 1. Análisis de Level Mismatch
 
-**¿El JD pide 5+ YOE pero dice "Junior"?** ⚠️ Problema.  
+**Reglas de scoring duras para Level Appropriateness (C):**
+- 0-2 YOE requerido → C = 5/5 (ideal fit)
+- 3 YOE requerido → C = 4/5 (slight stretch)
+- 4 YOE requerido → C = 3/5 (reachable stretch)
+- **5+ YOE requerido → C = 2/5 máximo. SIEMPRE.** ⚠️
+- **8+ YOE o Staff/Principal/Director → C = 1/5. Descalificado.** ❌
+
+**¿El JD pide 5+ YOE?** Score C ≤ 2/5. Recomendar skip salvo razón específica del usuario.  
 **¿Pide 2-3 YOE y dice "new grad OK"?** ✅ Buen fit.  
-**¿Pide 8+ YOE o "Staff"?** ❌ Descalificado.
+**¿Pide 8+ YOE o "Staff"?** ❌ Descalificado, score global ≤ 1.5.
 
 ### 2. Framing si Bryan postula
 

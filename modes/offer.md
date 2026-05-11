@@ -4,7 +4,20 @@ When the candidate pastes an offer (URL or JD text), ALWAYS evaluate with the 4 
 
 ---
 
-## Step 0 — Archetype Detection
+## Step 0 — Hard Disqualifiers (check BEFORE any analysis)
+
+Read these signals from the JD **before classifying the archetype**. If any trigger, cap the score and flag clearly in Block C.
+
+| Signal | How to detect | Score cap | Action |
+|--------|---------------|-----------|--------|
+| YOE ≥ 5 explicitly stated | "5+ years", "at least 5 years", "minimum 5 years" anywhere in JD | ≤ 2.0 | Classify as Senior-leveled, flag in Block C |
+| YOE ≥ 8 or high seniority | "8+ years", "10+ years", "Staff", "Principal", "Senior" in title | ≤ 1.0 | Out of Scope |
+| Non-engineering role | Title or JD contains "Director", "VP", "Head of", "Manager", "Product Manager", "PM", "Data Scientist", "ML Engineer", "Research" | ≤ 1.5 | Out of Scope |
+| Leadership/management track | "manage a team", "hire and mentor", "people manager", "direct reports" in JD | ≤ 1.5 | Out of Scope |
+
+**If a disqualifier fires:** Write "DISQUALIFIED: [reason]" at the top of Block C, set score ≤ cap, and recommend skip.
+
+## Step 1 — Archetype Detection
 
 Classify the offer into ONE of these archetypes (whichever fits best):
 
@@ -12,8 +25,8 @@ Classify the offer into ONE of these archetypes (whichever fits best):
 2. **Junior Backend Engineer** — APIs, databases, cloud, microservices
 3. **Junior Fullstack Engineer** — React/Vue + Node.js/Python, end-to-end ownership
 4. **Associate / SWE I** — Title "Associate" or "Engineer I", 0-2 YOE, entry ladder
-5. **Overleveled Misclassification** — Titled "SWE II", "Senior", etc. but junior scope
-6. **Out of Scope** — Doesn't fit any above (ML, embedded, finance, etc.)
+5. **Senior-leveled Misclassification** — Titled "SWE II", "Senior", "Staff", etc. OR requires 5+ YOE
+6. **Out of Scope** — Non-engineering role, PM/Director/Manager track, ML/research, embedded, finance, etc.
 
 This determines:
 - Which proof points to prioritize in Block B
@@ -77,9 +90,16 @@ For each gap (skill missing from Bryan):
 
 ### 1. Level Mismatch Analysis
 
-**Does the JD ask for 5+ YOE but say "Junior"?** ⚠️ Problem.  
+**Hard scoring rules for Level Appropriateness (C):**
+- 0-2 YOE required → C = 5/5 (ideal fit)
+- 3 YOE required → C = 4/5 (slight stretch)
+- 4 YOE required → C = 3/5 (reachable stretch)
+- **5+ YOE required → C = 2/5 maximum. ALWAYS.** ⚠️
+- **8+ YOE or Staff/Principal/Director → C = 1/5. Disqualified.** ❌
+
+**Does the JD ask for 5+ YOE?** Score C ≤ 2/5. Recommend skip unless user has a specific reason.  
 **Asks for 2-3 YOE and says "new grad OK"?** ✅ Good fit.  
-**Asks for 8+ YOE or "Staff"?** ❌ Disqualified.
+**Asks for 8+ YOE or "Staff"?** ❌ Disqualified, global score ≤ 1.5.
 
 ### 2. Framing if Bryan applies
 
@@ -127,7 +147,7 @@ Assess if it's a real, active opportunity or potentially a ghost posting.
 |-----------|--------|---------|
 | **Archetype Fit** | 35% | 5=New Grad/Junior explicit, 4=fits, 3=adjacent, 2=stretch, 1=out of scope |
 | **Stack Match** | 25% | 5=80%+ skills, 4=60%+, 3=40%+, 2=20%+, 1=<20% |
-| **Level Appropriateness** | 25% | 5=ideal, 4=slight stretch up, 3=acceptable, 2=overleveled, 1=very senior |
+| **Level Appropriateness** | 25% | 5=ideal (0-2 YOE), 4=slight stretch (3 YOE), 3=reachable (4 YOE), **2=overleveled (5+ YOE stated)**, **1=far too senior (8+ YOE or Staff/Principal/Director)** |
 | **Posting Signals** | 15% | 5=high confidence, 3=proceed with caution, 1=suspicious |
 
 **Formula:** `(A×0.35 + B×0.25 + C×0.25 + D×0.15)` rounded to 1 decimal.
