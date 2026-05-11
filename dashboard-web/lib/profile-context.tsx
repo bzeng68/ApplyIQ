@@ -21,12 +21,21 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
   const [activeProfile, setActiveProfileState] = useState('');
 
   useEffect(() => {
-    fetch('/api/profiles')
-      .then((r) => r.json())
-      .then((data: string[]) => {
+    Promise.all([
+      fetch('/api/profiles').then((r) => r.json()),
+      fetch('/api/preferences').then((r) => r.json()).catch(() => ({ selectedProfile: '' })),
+    ])
+      .then(([data, prefs]: [string[], any]) => {
         setProfiles(data);
+        // Prefer server-persisted profile, fallback to localStorage, then default to first profile
         const stored = localStorage.getItem(STORAGE_KEY);
-        const initial = stored && data.includes(stored) ? stored : (data[0] ?? '');
+        const serverProfile = prefs.selectedProfile;
+        const initial =
+          (serverProfile && data.includes(serverProfile)
+            ? serverProfile
+            : stored && data.includes(stored)
+            ? stored
+            : data[0]) ?? '';
         setActiveProfileState(initial);
       })
       .catch(() => {});
@@ -35,6 +44,12 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
   function setActiveProfile(p: string) {
     setActiveProfileState(p);
     localStorage.setItem(STORAGE_KEY, p);
+    // Persist to server for cross-device sync
+    fetch('/api/preferences', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ selectedProfile: p }),
+    }).catch((err) => console.error('Failed to persist profile selection:', err));
   }
 
   return (

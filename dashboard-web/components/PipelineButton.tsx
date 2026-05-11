@@ -75,16 +75,34 @@ export default function PipelineButton() {
           if (data.state === 'SUCCEEDED') {
             stopPolling();
             localStorage.removeItem(STORAGE_KEY);
+            const completedAt = data.completedAt ?? new Date().toISOString();
             setRunState('succeeded');
-            setLastCompleted(data.completedAt ?? new Date().toISOString());
+            setLastCompleted(completedAt);
             setLastFailed(false);
+            // Persist to server for cross-device sync
+            fetch('/api/preferences', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                pipelineLastRun: { completedAt, failed: false },
+              }),
+            }).catch((err) => console.error('Failed to persist pipeline state:', err));
             router.refresh();
           } else if (data.state === 'FAILED') {
             stopPolling();
             localStorage.removeItem(STORAGE_KEY);
+            const completedAt = data.completedAt ?? new Date().toISOString();
             setRunState('failed');
             setLastFailed(true);
-            setLastCompleted(data.completedAt ?? new Date().toISOString());
+            setLastCompleted(completedAt);
+            // Persist to server for cross-device sync
+            fetch('/api/preferences', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                pipelineLastRun: { completedAt, failed: true },
+              }),
+            }).catch((err) => console.error('Failed to persist pipeline state:', err));
           }
         } catch {
           // ignore transient errors — keep polling
@@ -107,15 +125,21 @@ export default function PipelineButton() {
       }
     }
 
-    // Load last run time for idle subtitle
-    fetch('/api/pipeline/status?latest=true')
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.completedAt) {
-          setLastCompleted(data.completedAt);
-          setLastFailed(data.state === 'FAILED');
-        } else if (data.startTime && data.state !== 'UNKNOWN') {
-          setLastCompleted(data.startTime);
+    // Load last run time from server (persisted for cross-device sync)
+    Promise.all([
+      fetch('/api/pipeline/status?latest=true').then((r) => r.json()).catch(() => ({})),
+      fetch('/api/preferences').then((r) => r.json()).catch(() => ({})),
+    ])
+      .then(([pipelineData, prefs]: [any, any]) => {
+        // Prefer server-persisted state, fallback to API status
+        if (prefs.pipelineLastRun) {
+          setLastCompleted(prefs.pipelineLastRun.completedAt);
+          setLastFailed(prefs.pipelineLastRun.failed ?? false);
+        } else if (pipelineData.completedAt) {
+          setLastCompleted(pipelineData.completedAt);
+          setLastFailed(pipelineData.state === 'FAILED');
+        } else if (pipelineData.startTime && pipelineData.state !== 'UNKNOWN') {
+          setLastCompleted(pipelineData.startTime);
         }
       })
       .catch(() => {});
