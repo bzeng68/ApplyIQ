@@ -214,15 +214,15 @@ export function findJdById(id: string, profile: string) {
   return fs.existsSync(file) ? file : null;
 }
 
-async function loadUiStateFromGCS(profile: string) {
+async function loadUiStateFromGCS(profile: string): Promise<{ done: number[]; skipped: number[] }> {
   const gcsPath = `ui-state/${profile}/ui-state.json`;
   const content = await readFromGCS(gcsPath);
   if (!content) return { done: [], skipped: [] };
   try {
     const data = JSON.parse(content);
     return {
-      done: Array.isArray(data.done) ? data.done : [],
-      skipped: Array.isArray(data.skipped) ? data.skipped : [],
+      done: Array.isArray(data.done) ? (data.done as number[]) : [],
+      skipped: Array.isArray(data.skipped) ? (data.skipped as number[]) : [],
     };
   } catch {
     return { done: [], skipped: [] };
