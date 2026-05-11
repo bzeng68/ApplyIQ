@@ -16,10 +16,12 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import { execSync } from "child_process";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const DATA_ROOT = process.env.DATA_ROOT ? path.resolve(process.env.DATA_ROOT) : __dirname;
+const GCS_BUCKET = process.env.GCS_BUCKET;
 
 // Parse TSV file
 function parseTSV(filePath) {
@@ -71,16 +73,35 @@ function findReportFile(reportsDir, reportNum) {
   return found ? path.join(reportsDir, found) : null;
 }
 
-// Parse UI state
+// Parse UI state — GCS is source of truth, local file is fallback
 function parseUIState() {
-  const filePath = path.join(DATA_ROOT, "data/ui-state.json");
-  if (!fs.existsSync(filePath)) {
-    return { done: [] };
+  // Derive profile name from DATA_ROOT (e.g. .../profiles/bryan → bryan)
+  const profile = path.basename(DATA_ROOT);
+
+  // Try GCS first
+  if (GCS_BUCKET) {
+    try {
+      const gcsPath = `gs://${GCS_BUCKET}/ui-state/${profile}/ui-state.json`;
+      const json = execSync(`gsutil cat "${gcsPath}" 2>/dev/null`, { encoding: "utf8" }).trim();
+      if (json) {
+        // Keep local in sync with GCS
+        const localPath = path.join(DATA_ROOT, "data/ui-state.json");
+        fs.mkdirSync(path.dirname(localPath), { recursive: true });
+        fs.writeFileSync(localPath, json, "utf8");
+        return JSON.parse(json);
+      }
+    } catch {
+      // Fall through to local
+    }
   }
+
+  // Fallback: local file
+  const filePath = path.join(DATA_ROOT, "data/ui-state.json");
+  if (!fs.existsSync(filePath)) return { done: [], skipped: [] };
   try {
     return JSON.parse(fs.readFileSync(filePath, "utf8"));
   } catch {
-    return { done: [] };
+    return { done: [], skipped: [] };
   }
 }
 

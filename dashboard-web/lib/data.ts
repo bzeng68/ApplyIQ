@@ -217,16 +217,19 @@ export function findJdById(id: string, profile: string) {
 async function loadUiStateFromGCS(profile: string): Promise<{ done: number[]; skipped: number[] }> {
   const gcsPath = `ui-state/${profile}/ui-state.json`;
   const content = await readFromGCS(gcsPath);
-  if (!content) return { done: [], skipped: [] };
-  try {
-    const data = JSON.parse(content);
-    return {
-      done: Array.isArray(data.done) ? (data.done as number[]) : [],
-      skipped: Array.isArray(data.skipped) ? (data.skipped as number[]) : [],
-    };
-  } catch {
-    return { done: [], skipped: [] };
+  if (content) {
+    try {
+      const data = JSON.parse(content);
+      return {
+        done: Array.isArray(data.done) ? (data.done as number[]) : [],
+        skipped: Array.isArray(data.skipped) ? (data.skipped as number[]) : [],
+      };
+    } catch {
+      // Fall through to local fallback
+    }
   }
+  // Fallback to local file (written as backup on every state update)
+  return loadUiState(profilePaths(profile).UI_STATE_FILE);
 }
 
 async function saveUiStateToGCS(profile: string, state: { done: number[]; skipped: number[] }) {
