@@ -54,6 +54,9 @@ export async function POST(req: NextRequest) {
     if (body.pipelineLastRun !== undefined) {
       prefs.pipelineLastRun = body.pipelineLastRun;
     }
+    if (body.pipelineExecution !== undefined) {
+      prefs.pipelineExecution = body.pipelineExecution;
+    }
 
     savePreferences(prefs);
     return NextResponse.json(prefs);

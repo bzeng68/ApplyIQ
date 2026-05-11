@@ -46,9 +46,6 @@ type Props = {
   maxScore?: number;
 };
 
-const STORAGE_KEY_DONE = 'applyiq_done_ids';
-const STORAGE_KEY_SKIPPED = 'applyiq_skipped_ids';
-
 export default function OffersTable({ mode, minScore = 0, maxScore = 5 }: Props) {
   const { activeProfile } = useProfile();
   const [offers, setOffers] = useState<Offer[]>([]);
@@ -62,24 +59,11 @@ export default function OffersTable({ mode, minScore = 0, maxScore = 5 }: Props)
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // On profile change: fetch server state (GCS-backed), merge with localStorage, load offers
+  // On profile change: fetch offers and ui-state from GCS via API
   useEffect(() => {
     if (!activeProfile) return;
     setLoading(true);
     setError(null);
-
-    // Read localStorage optimistically while waiting for server
-    let localDone: number[] = [];
-    let localSkipped: number[] = [];
-    try {
-      const storedDone = localStorage.getItem(STORAGE_KEY_DONE);
-      const storedSkipped = localStorage.getItem(STORAGE_KEY_SKIPPED);
-      if (storedDone) localDone = JSON.parse(storedDone) || [];
-      if (storedSkipped) localSkipped = JSON.parse(storedSkipped) || [];
-    } catch {
-      localStorage.removeItem(STORAGE_KEY_DONE);
-      localStorage.removeItem(STORAGE_KEY_SKIPPED);
-    }
 
     Promise.all([
       fetch(`/api/offers?profile=${encodeURIComponent(activeProfile)}`).then((r) => {
@@ -90,30 +74,19 @@ export default function OffersTable({ mode, minScore = 0, maxScore = 5 }: Props)
         r.ok ? r.json() : { done: [], skipped: [] }
       ).catch(() => ({ done: [], skipped: [] })),
     ])
-      .then(([offersData, serverState]) => {
+      .then(([offersData, uiState]) => {
         if (!validateOffers(offersData)) throw new Error('Invalid offers data format');
 
-        // Merge server state (source of truth) with localStorage (local cache)
-        const mergedDone = new Set<number>([
-          ...(serverState.done || []).map(Number),
-          ...localDone.map(Number),
-        ]);
-        const mergedSkipped = new Set<number>([
-          ...(serverState.skipped || []).map(Number),
-          ...localSkipped.map(Number),
-        ]);
+        const doneSet = new Set<number>((uiState.done || []).map(Number));
+        const skippedSet = new Set<number>((uiState.skipped || []).map(Number));
 
-        // Persist merged state back to localStorage
-        localStorage.setItem(STORAGE_KEY_DONE, JSON.stringify(Array.from(mergedDone)));
-        localStorage.setItem(STORAGE_KEY_SKIPPED, JSON.stringify(Array.from(mergedSkipped)));
-
-        setDoneIds(mergedDone);
-        setSkippedIds(mergedSkipped);
+        setDoneIds(doneSet);
+        setSkippedIds(skippedSet);
         setOffers(
           offersData.map((offer: Offer) => ({
             ...offer,
-            done: mergedDone.has(offer.id),
-            skipped: mergedSkipped.has(offer.id),
+            done: doneSet.has(offer.id),
+            skipped: skippedSet.has(offer.id),
           }))
         );
       })
@@ -184,14 +157,13 @@ export default function OffersTable({ mode, minScore = 0, maxScore = 5 }: Props)
     if (done) updated.add(id);
     else updated.delete(id);
     setDoneIds(updated);
-    localStorage.setItem(STORAGE_KEY_DONE, JSON.stringify(Array.from(updated)));
 
-    // Persist to server (GCS-backed, cross-device)
+    // Persist to GCS via API
     fetch(`/api/offers/${id}/done`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ done, profile: activeProfile }),
-    }).catch((err) => console.error('Failed to persist done state to server:', err));
+    }).catch((err) => console.error('Failed to persist done state:', err));
   }
 
   function toggleSkip(id: number, skipped: boolean) {
@@ -201,14 +173,13 @@ export default function OffersTable({ mode, minScore = 0, maxScore = 5 }: Props)
     if (skipped) updated.add(id);
     else updated.delete(id);
     setSkippedIds(updated);
-    localStorage.setItem(STORAGE_KEY_SKIPPED, JSON.stringify(Array.from(updated)));
 
-    // Persist to server (GCS-backed, cross-device)
+    // Persist to GCS via API
     fetch(`/api/offers/${id}/skip`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ skipped, profile: activeProfile }),
-    }).catch((err) => console.error('Failed to persist skip state to server:', err));
+    }).catch((err) => console.error('Failed to persist skip state:', err));
   }
 
   if (error) {

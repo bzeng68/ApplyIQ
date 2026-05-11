@@ -274,3 +274,30 @@ export async function updateSkipStateAsync(id: number, profile: string, skipped?
   fs.writeFileSync(p.UI_STATE_FILE, JSON.stringify(nextState, null, 2));
   return nextState;
 }
+
+// Option A: Filter offers to exclude those marked done/skip in GCS ui-state
+export async function filterUnevaluatedOffers(profile: string): Promise<number[]> {
+  const p = profilePaths(profile);
+  const inputs = readTsv(p.INPUT_FILE);
+  const states = readTsv(p.STATE_FILE);
+  const uiState = await loadUiStateFromGCS(profile);
+  const doneSet = new Set((uiState.done || []).map((id: number) => Number(id)));
+  const skippedSet = new Set((uiState.skipped || []).map((id: number) => Number(id)));
+
+  const stateById = new Map(states.map((row) => [Number(row.id), row]));
+  const unevaluated: number[] = [];
+
+  for (const row of inputs) {
+    const id = Number(row.id);
+    if (!id) continue;
+    const state = stateById.get(id);
+    if (!state) continue;
+    // Skip if marked as done/skipped in GCS, or already completed
+    if (doneSet.has(id) || skippedSet.has(id) || state.status === 'completed' || state.status === 'skipped') {
+      continue;
+    }
+    unevaluated.push(id);
+  }
+
+  return unevaluated;
+}

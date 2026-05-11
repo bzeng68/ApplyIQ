@@ -5,13 +5,23 @@ import { useRouter } from 'next/navigation';
 
 type RunState = 'idle' | 'triggering' | 'running' | 'succeeded' | 'failed';
 
-interface StoredExecution {
-  executionName: string;
-  startTime: string;
+const POLL_INTERVAL_MS = 5000;
+
+function saveExecutionToServer(executionName: string, startTime: string) {
+  return fetch('/api/preferences', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ pipelineExecution: { executionName, startTime } }),
+  }).catch((err) => console.error('Failed to persist execution state:', err));
 }
 
-const STORAGE_KEY = 'pipeline_execution';
-const POLL_INTERVAL_MS = 5000;
+function clearExecutionFromServer() {
+  return fetch('/api/preferences', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ pipelineExecution: null }),
+  }).catch((err) => console.error('Failed to clear execution state:', err));
+}
 
 function elapsedSeconds(startTime: string | null): number {
   if (!startTime) return 0;
@@ -74,34 +84,28 @@ export default function PipelineButton() {
           const data = await res.json();
           if (data.state === 'SUCCEEDED') {
             stopPolling();
-            localStorage.removeItem(STORAGE_KEY);
             const completedAt = data.completedAt ?? new Date().toISOString();
             setRunState('succeeded');
             setLastCompleted(completedAt);
             setLastFailed(false);
-            // Persist to server for cross-device sync
+            clearExecutionFromServer();
             fetch('/api/preferences', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                pipelineLastRun: { completedAt, failed: false },
-              }),
+              body: JSON.stringify({ pipelineLastRun: { completedAt, failed: false } }),
             }).catch((err) => console.error('Failed to persist pipeline state:', err));
             router.refresh();
           } else if (data.state === 'FAILED') {
             stopPolling();
-            localStorage.removeItem(STORAGE_KEY);
             const completedAt = data.completedAt ?? new Date().toISOString();
             setRunState('failed');
             setLastFailed(true);
             setLastCompleted(completedAt);
-            // Persist to server for cross-device sync
+            clearExecutionFromServer();
             fetch('/api/preferences', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                pipelineLastRun: { completedAt, failed: true },
-              }),
+              body: JSON.stringify({ pipelineLastRun: { completedAt, failed: true } }),
             }).catch((err) => console.error('Failed to persist pipeline state:', err));
           }
         } catch {
@@ -112,26 +116,19 @@ export default function PipelineButton() {
     [stopPolling, router],
   );
 
-  // On mount: resume in-progress execution or load last run time
+  // On mount: resume in-progress execution or load last run time from server
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      try {
-        const { executionName, startTime: start } = JSON.parse(stored) as StoredExecution;
-        startPolling(executionName, start);
-        return;
-      } catch {
-        localStorage.removeItem(STORAGE_KEY);
-      }
-    }
-
-    // Load last run time from server (persisted for cross-device sync)
     Promise.all([
       fetch('/api/pipeline/status?latest=true').then((r) => r.json()).catch(() => ({})),
       fetch('/api/preferences').then((r) => r.json()).catch(() => ({})),
     ])
       .then(([pipelineData, prefs]: [any, any]) => {
-        // Prefer server-persisted state, fallback to API status
+        // Resume in-progress execution if persisted
+        if (prefs.pipelineExecution?.executionName) {
+          startPolling(prefs.pipelineExecution.executionName, prefs.pipelineExecution.startTime);
+          return;
+        }
+        // Load last run state
         if (prefs.pipelineLastRun) {
           setLastCompleted(prefs.pipelineLastRun.completedAt);
           setLastFailed(prefs.pipelineLastRun.failed ?? false);
@@ -166,7 +163,7 @@ export default function PipelineButton() {
         return;
       }
       const { executionName, startTime: start } = data as { executionName: string; startTime: string };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ executionName, startTime: start }));
+      saveExecutionToServer(executionName, start);
       startPolling(executionName, start);
     } catch (err) {
       console.error('Pipeline trigger error:', err);

@@ -2,8 +2,6 @@
 
 import { createContext, useContext, useEffect, useState } from 'react';
 
-const STORAGE_KEY = 'applyiq_selected_profile';
-
 interface ProfileCtx {
   profiles: string[];
   activeProfile: string;
@@ -27,15 +25,8 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     ])
       .then(([data, prefs]: [string[], any]) => {
         setProfiles(data);
-        // Prefer server-persisted profile, fallback to localStorage, then default to first profile
-        const stored = localStorage.getItem(STORAGE_KEY);
         const serverProfile = prefs.selectedProfile;
-        const initial =
-          (serverProfile && data.includes(serverProfile)
-            ? serverProfile
-            : stored && data.includes(stored)
-            ? stored
-            : data[0]) ?? '';
+        const initial = (serverProfile && data.includes(serverProfile) ? serverProfile : data[0]) ?? '';
         setActiveProfileState(initial);
       })
       .catch(() => {});
@@ -43,8 +34,6 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
 
   function setActiveProfile(p: string) {
     setActiveProfileState(p);
-    localStorage.setItem(STORAGE_KEY, p);
-    // Persist to server for cross-device sync
     fetch('/api/preferences', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
