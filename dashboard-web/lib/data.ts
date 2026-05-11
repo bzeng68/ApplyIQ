@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { findReportFile, normalizeReportNum, parseReport, readTsv } from './parsers';
+import { readFromGCS, writeToGCS } from './gcs';
 
 const BASE_ROOT = process.env.DATA_ROOT
   ? path.resolve(process.env.DATA_ROOT)
@@ -58,6 +59,10 @@ export type Offer = {
 
 export function loadUiStateForProfile(profile: string) {
   return loadUiState(profilePaths(profile).UI_STATE_FILE);
+}
+
+export async function loadUiStateForProfileAsync(profile: string) {
+  return loadUiStateFromGCS(profile);
 }
 
 function loadUiState(uiStateFile: string) {
@@ -207,4 +212,65 @@ export function findJdById(id: string, profile: string) {
   const p = profilePaths(profile);
   const file = path.join(p.DATA_DIR, 'jds', `${id}.txt`);
   return fs.existsSync(file) ? file : null;
+}
+
+async function loadUiStateFromGCS(profile: string) {
+  const gcsPath = `ui-state/${profile}/ui-state.json`;
+  const content = await readFromGCS(gcsPath);
+  if (!content) return { done: [], skipped: [] };
+  try {
+    const data = JSON.parse(content);
+    return {
+      done: Array.isArray(data.done) ? data.done : [],
+      skipped: Array.isArray(data.skipped) ? data.skipped : [],
+    };
+  } catch {
+    return { done: [], skipped: [] };
+  }
+}
+
+async function saveUiStateToGCS(profile: string, state: { done: number[]; skipped: number[] }) {
+  const gcsPath = `ui-state/${profile}/ui-state.json`;
+  const content = JSON.stringify(state, null, 2);
+  return writeToGCS(gcsPath, content);
+}
+
+export async function updateDoneStateAsync(id: number, profile: string, done?: boolean) {
+  const uiState = await loadUiStateFromGCS(profile);
+  const doneSet = new Set((uiState.done || []).map((entry: number) => Number(entry)));
+  if (typeof done === 'boolean') {
+    done ? doneSet.add(id) : doneSet.delete(id);
+  } else {
+    doneSet.has(id) ? doneSet.delete(id) : doneSet.add(id);
+  }
+  const nextState = {
+    done: Array.from(doneSet).sort((a, b) => (a as number) - (b as number)),
+    skipped: uiState.skipped || [],
+  };
+  await saveUiStateToGCS(profile, nextState);
+  // Also save to local filesystem as backup
+  const p = profilePaths(profile);
+  fs.mkdirSync(p.DATA_DIR, { recursive: true });
+  fs.writeFileSync(p.UI_STATE_FILE, JSON.stringify(nextState, null, 2));
+  return nextState;
+}
+
+export async function updateSkipStateAsync(id: number, profile: string, skipped?: boolean) {
+  const uiState = await loadUiStateFromGCS(profile);
+  const skippedSet = new Set((uiState.skipped || []).map((entry: number) => Number(entry)));
+  if (typeof skipped === 'boolean') {
+    skipped ? skippedSet.add(id) : skippedSet.delete(id);
+  } else {
+    skippedSet.has(id) ? skippedSet.delete(id) : skippedSet.add(id);
+  }
+  const nextState = {
+    done: uiState.done || [],
+    skipped: Array.from(skippedSet).sort((a, b) => (a as number) - (b as number)),
+  };
+  await saveUiStateToGCS(profile, nextState);
+  // Also save to local filesystem as backup
+  const p = profilePaths(profile);
+  fs.mkdirSync(p.DATA_DIR, { recursive: true });
+  fs.writeFileSync(p.UI_STATE_FILE, JSON.stringify(nextState, null, 2));
+  return nextState;
 }

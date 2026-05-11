@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { updateDoneState } from '../../../../../lib/data';
+import { updateDoneStateAsync } from '../../../../../lib/data';
 
 export async function POST(
   req: NextRequest,
@@ -12,7 +12,7 @@ export async function POST(
   const { done = true, profile = 'default' } = body as { done?: boolean; profile?: string };
 
   try {
-    const nextState = updateDoneState(id, profile, done);
+    const nextState = await updateDoneStateAsync(id, profile, done);
     return NextResponse.json(nextState);
   } catch (err) {
     console.error('Failed to persist done state:', err);

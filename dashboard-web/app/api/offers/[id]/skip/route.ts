@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { updateSkipState } from '../../../../../lib/data';
+import { updateSkipStateAsync } from '../../../../../lib/data';
 
 export async function POST(
   req: NextRequest,
@@ -12,7 +12,7 @@ export async function POST(
   const { skipped = true, profile = 'default' } = body as { skipped?: boolean; profile?: string };
 
   try {
-    const nextState = updateSkipState(id, profile, skipped);
+    const nextState = await updateSkipStateAsync(id, profile, skipped);
     return NextResponse.json(nextState);
   } catch (err) {
     console.error('Failed to persist skip state:', err);
