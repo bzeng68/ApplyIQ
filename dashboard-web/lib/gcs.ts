@@ -49,11 +49,13 @@ export async function readFromGCS(filePath: string): Promise<string | null> {
 export async function listGCSProfiles(): Promise<string[]> {
   try {
     const bucket = getStorage().bucket(GCS_BUCKET);
-    const [, , apiResponse] = await bucket.getFiles({ prefix: 'profiles/', delimiter: '/' }) as any;
-    const prefixes: string[] = apiResponse?.prefixes ?? [];
-    return prefixes
-      .map((p: string) => p.replace(/^profiles\//, '').replace(/\/$/, ''))
-      .filter(Boolean);
+    const [files] = await bucket.getFiles({ prefix: 'profiles/' });
+    const profiles = [...new Set(
+      files
+        .map((f) => f.name.split('/')[1])
+        .filter(Boolean)
+    )];
+    return profiles;
   } catch (err) {
     console.error('Failed to list GCS profiles:', err);
     return [];
