@@ -25,7 +25,9 @@ const parseYaml = yaml.load;
 const APP_ROOT = process.cwd();
 const DATA_ROOT = process.env.DATA_ROOT ? path.resolve(process.env.DATA_ROOT) : APP_ROOT;
 
-const PORTALS_PATH = path.join(APP_ROOT, 'portals.yml');
+// Prefer profile-level portals.yml (DATA_ROOT) over project root
+const _profilePortals = path.join(DATA_ROOT, 'portals.yml');
+const PORTALS_PATH = existsSync(_profilePortals) ? _profilePortals : path.join(APP_ROOT, 'portals.yml');
 const SCAN_HISTORY_PATH = path.join(DATA_ROOT, 'data/scan-history.tsv');
 const PIPELINE_PATH = path.join(DATA_ROOT, 'data/pipeline.md');
 const APPLICATIONS_PATH = path.join(DATA_ROOT, 'data/applications.md');

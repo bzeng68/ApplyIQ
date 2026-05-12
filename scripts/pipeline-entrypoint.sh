@@ -34,6 +34,8 @@ for profile_dir in "${PROFILES_BASE}"/*/; do
   fi
 
   node scan.mjs
+  node scripts/stage-from-pipeline.mjs
+  node scripts/skip-done-offers.mjs
   node scripts/evaluate-new.mjs
   node merge-tracker.mjs
   node build-dashboard-data.mjs
