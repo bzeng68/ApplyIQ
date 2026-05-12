@@ -3,6 +3,7 @@ profiles/
 
 # Personal data (user fills these)
 cv.md
+applications.md
 data/applications.md
 data/pipeline.md
 data/evaluations.md
@@ -40,6 +41,7 @@ modes/_profile.md
 .resolved-prompt-*
 node_modules/
 dashboard-web/.next/
+dashboard-web/tsconfig.tsbuildinfo
 terraform/**/.terraform/
 terraform/**/*.tfstate
 terraform/**/*.tfstate.*
@@ -54,6 +56,7 @@ bun.lock
 # Claude Code local
 .claude/settings.local.json
 .claude/memory/
+.claude/worktrees/
 career-dashboard
 
 # Local generated data (populated by pipeline at runtime)
