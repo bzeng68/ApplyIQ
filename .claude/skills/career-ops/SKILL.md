@@ -116,16 +116,21 @@ Execute the instructions from the loaded mode file.
 
 If `{{mode}}` is `sequential`:
 
-1. **Scan for unevaluated offers:**
-   - Read `batch/batch-state.tsv`
-   - Find all rows where `status` is NOT `'completed'` OR `report_num` is empty
+1. **Resolve the active profile:**
+   - Read `config/profile.yml` to get the profile name (field `name` or `profile`), default to `bryan`
+   - All paths below are relative to `profiles/{profile}/` (e.g. `profiles/bryan/batch/batch-state.tsv`)
+
+2. **Scan for unevaluated offers:**
+   - Read `profiles/{profile}/batch/batch-state.tsv`
+   - Also check `profiles/{profile}/batch/batch-input.tsv` for IDs with no state row at all
+   - Find all offers where `status` is NOT `'completed'` OR `report_num` is empty
    - Count unevaluated offers
 
-2. **Report status:**
-   - If 0 unevaluated: "All offers already evaluated. Dashboard is current. Run `npm run dashboard` to view."
+3. **Report status:**
+   - If 0 unevaluated: "All offers already evaluated. Dashboard is current."
    - If >0: "Found {N} unevaluated offers. Starting automated evaluation pipeline..."
 
-3. **Delegate to subagent:**
+4. **Delegate to subagent:**
    - Load `modes/_shared-core.md` and `modes/_shared-scoring.md`
    - Launch Agent with `subagent_type="general-purpose"` and:
      ```
@@ -138,16 +143,17 @@ If `{{mode}}` is `sequential`:
        
        ## Your Task
        
-       You will evaluate ALL unevaluated offers from batch-state.tsv sequentially and NON-INTERACTIVELY.
+       You will evaluate ALL unevaluated offers from profiles/{profile}/batch/batch-state.tsv sequentially and NON-INTERACTIVELY.
+       The profile root is `profiles/{profile}/`. All file paths below are relative to the project root.
        
        ### Process (for each unevaluated offer):
        
-       1. **Read offer metadata** from batch/batch-state.tsv (id, url)
+       1. **Read offer metadata** from `profiles/{profile}/batch/batch-input.tsv` (id, url, source, notes) and `profiles/{profile}/batch/batch-state.tsv` (status, report_num)
        2. **Fetch JD:** Use Playwright or WebFetch to get the current job description text from {url}
-       3. **Save JD:** Write to `data/jds/{id}.txt`
+       3. **Save JD:** Write to `profiles/{profile}/data/jds/{id}.txt`
        4. **Evaluate:** Apply blocks A-G scoring framework (role summary, CV match, level strategy, legitimacy)
-       5. **Generate report:** Create markdown report at `reports/{report_num}-{company-slug}-{date}.md`
-       6. **Update batch-state.tsv:** Set status='completed', completed_at=ISO8601, report_num, score
+       5. **Generate report:** Create markdown report at `profiles/{profile}/reports/{report_num}-{company-slug}-{date}.md`
+       6. **Update batch-state.tsv:** Set status='completed', completed_at=ISO8601, report_num, score in `profiles/{profile}/batch/batch-state.tsv`
        7. **Track progress:** Output "Evaluated {id}: {company} - {role} ({score}/5.0)"
        
        ### Critical Requirements
@@ -156,19 +162,19 @@ If `{{mode}}` is `sequential`:
        - **Report format:** Standard blocks A-F (role, CV match, level, comp, tradeoffs, notes) + block G (legitimacy)
        - **Legitimacy:** High Confidence, Proceed with Caution, or Suspicious (use intuition from JD quality/posting details)
        - **Score:** 0-5 scale based on overall fit (see _shared-scoring.md)
-       - **Handle failures:** If fetch fails, use archived JD from data/jds/{id}.txt if available; if evaluation fails, set score=2.0 and error reason
+       - **Handle failures:** If fetch fails, use archived JD from `profiles/{profile}/data/jds/{id}.txt` if available; if evaluation fails, set score=2.0 and error reason
        
        ### After All Evaluations Complete
        
-       1. Run: `node build-dashboard-data.mjs` (pre-compute dashboard JSON)
+       1. Run: `DATA_ROOT=profiles/{profile} node build-dashboard-data.mjs` (pre-compute dashboard JSON)
        2. Run: `node merge-tracker.mjs` (merge TSV additions to applications.md)
-       3. Report: "Pipeline complete. Evaluated {total} offers. {passing} passed (≥3.0), {failing} below threshold. Dashboard ready: npm run dashboard"
+       3. Report: "Pipeline complete. Evaluated {total} offers. {passing} passed (≥3.0), {failing} below threshold."
        
        Start now. No preamble, just evaluate sequentially.
      ```
    - Description: "career-ops sequential: automated evaluation pipeline"
 
-4. **After completion:**
-   - Subagent will have updated batch-state.tsv, created reports, created JDs, updated tracker
-   - Subagent runs build-dashboard-data.mjs and merge-tracker.mjs
+5. **After completion:**
+   - Subagent will have updated `profiles/{profile}/batch/batch-state.tsv`, created reports, updated tracker
+   - Subagent runs `DATA_ROOT=profiles/{profile} node build-dashboard-data.mjs` and `node merge-tracker.mjs`
    - Confirm to user: "Sequential pipeline complete. Dashboard is ready for viewing."
