@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { listProfiles } from '../../../lib/data';
 import { listGCSProfiles } from '../../../lib/gcs';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   // Try GCS first (source of truth in deployed env)
   try {

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { loadUiStateForProfileAsync } from '../../../lib/data';
 
-// GET: Load ui-state for a profile
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: NextRequest) {
   const profile = req.nextUrl.searchParams.get('profile') || 'default';
   try {
