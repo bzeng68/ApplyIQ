@@ -1,5 +1,5 @@
 # Per-profile personal data (gitignored — synced to GCS via sync-to-gcs.mjs)
-profiles/
+/profiles/
 
 # Personal data (user fills these)
 cv.md
