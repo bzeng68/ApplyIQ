@@ -1,5 +1,7 @@
 # Cloud Run job for the evaluation pipeline
+# google-beta required: gcs volume support in v2 jobs not in stable provider v5
 resource "google_cloud_run_v2_job" "pipeline" {
+  provider = google-beta
   name     = "applyiq-pipeline"
   location = var.region
 
@@ -16,6 +18,11 @@ resource "google_cloud_run_v2_job" "pipeline" {
         env {
           name  = "DATA_ROOT"
           value = "/mnt/data"
+        }
+
+        env {
+          name  = "GCS_BUCKET"
+          value = google_storage_bucket.data.name
         }
 
         env {

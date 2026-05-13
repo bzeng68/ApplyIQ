@@ -23,10 +23,10 @@ resource "google_storage_bucket_iam_member" "pipeline_bucket_admin" {
   member = "serviceAccount:${google_service_account.pipeline_sa.email}"
 }
 
-# Allow dashboard SA to read GCS bucket
-resource "google_storage_bucket_iam_member" "dashboard_bucket_reader" {
+# Allow dashboard SA to read/write GCS bucket (ui-state persistence requires write access)
+resource "google_storage_bucket_iam_member" "dashboard_bucket_admin" {
   bucket = google_storage_bucket.data.name
-  role   = "roles/storage.objectViewer"
+  role   = "roles/storage.objectAdmin"
   member = "serviceAccount:${google_service_account.dashboard_sa.email}"
 }
 
