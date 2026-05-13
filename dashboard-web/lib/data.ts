@@ -251,10 +251,12 @@ export async function updateDoneStateAsync(id: number, profile: string, done?: b
     skipped: uiState.skipped || [],
   };
   await saveUiStateToGCS(profile, nextState);
-  // Also save to local filesystem as backup
-  const p = profilePaths(profile);
-  fs.mkdirSync(p.DATA_DIR, { recursive: true });
-  fs.writeFileSync(p.UI_STATE_FILE, JSON.stringify(nextState, null, 2));
+  // Best-effort local backup (no-op in Cloud Run where FS is read-only)
+  try {
+    const p = profilePaths(profile);
+    fs.mkdirSync(p.DATA_DIR, { recursive: true });
+    fs.writeFileSync(p.UI_STATE_FILE, JSON.stringify(nextState, null, 2));
+  } catch { /* ignore — GCS is source of truth */ }
   return nextState;
 }
 
@@ -271,10 +273,12 @@ export async function updateSkipStateAsync(id: number, profile: string, skipped?
     skipped: Array.from(skippedSet).sort((a, b) => (a as number) - (b as number)),
   };
   await saveUiStateToGCS(profile, nextState);
-  // Also save to local filesystem as backup
-  const p = profilePaths(profile);
-  fs.mkdirSync(p.DATA_DIR, { recursive: true });
-  fs.writeFileSync(p.UI_STATE_FILE, JSON.stringify(nextState, null, 2));
+  // Best-effort local backup (no-op in Cloud Run where FS is read-only)
+  try {
+    const p = profilePaths(profile);
+    fs.mkdirSync(p.DATA_DIR, { recursive: true });
+    fs.writeFileSync(p.UI_STATE_FILE, JSON.stringify(nextState, null, 2));
+  } catch { /* ignore — GCS is source of truth */ }
   return nextState;
 }
 
