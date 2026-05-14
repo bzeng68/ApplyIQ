@@ -130,51 +130,25 @@ If `{{mode}}` is `sequential`:
    - If 0 unevaluated: "All offers already evaluated. Dashboard is current."
    - If >0: "Found {N} unevaluated offers. Starting automated evaluation pipeline..."
 
-4. **Delegate to subagent:**
-   - Load `modes/_shared-core.md` and `modes/_shared-scoring.md`
-   - Launch Agent with `subagent_type="general-purpose"` and:
-     ```
-     prompt: |
-       # Automated Sequential Evaluation Pipeline
-       
-       {_shared-core.md content}
-       
-       {_shared-scoring.md content}
-       
-       ## Your Task
-       
-       You will evaluate ALL unevaluated offers from profiles/{profile}/batch/batch-state.tsv sequentially and NON-INTERACTIVELY.
-       The profile root is `profiles/{profile}/`. All file paths below are relative to the project root.
-       
-       ### Process (for each unevaluated offer):
-       
-       1. **Read offer metadata** from `profiles/{profile}/batch/batch-input.tsv` (id, url, source, notes) and `profiles/{profile}/batch/batch-state.tsv` (status, report_num)
-       2. **Fetch JD:** Use Playwright or WebFetch to get the current job description text from {url}
-       3. **Save JD:** Write to `profiles/{profile}/data/jds/{id}.txt`
-       4. **Evaluate:** Apply blocks A-G scoring framework (role summary, CV match, level strategy, legitimacy)
-       5. **Generate report:** Create markdown report at `profiles/{profile}/reports/{report_num}-{company-slug}-{date}.md`
-       6. **Update batch-state.tsv:** Set status='completed', completed_at=ISO8601, report_num, score in `profiles/{profile}/batch/batch-state.tsv`
-       7. **Track progress:** Output "Evaluated {id}: {company} - {role} ({score}/5.0)"
-       
-       ### Critical Requirements
-       
-       - **Non-interactive:** No questions, no pausing, no user input. Just process all offers.
-       - **Report format:** Standard blocks A-F (role, CV match, level, comp, tradeoffs, notes) + block G (legitimacy)
-       - **Legitimacy:** High Confidence, Proceed with Caution, or Suspicious (use intuition from JD quality/posting details)
-       - **Score:** 0-5 scale based on overall fit (see _shared-scoring.md)
-       - **Handle failures:** If fetch fails, use archived JD from `profiles/{profile}/data/jds/{id}.txt` if available; if evaluation fails, set score=2.0 and error reason
-       
-       ### After All Evaluations Complete
-       
-       1. Run: `DATA_ROOT=profiles/{profile} node build-dashboard-data.mjs` (pre-compute dashboard JSON)
-       2. Run: `node merge-tracker.mjs` (merge TSV additions to applications.md)
-       3. Report: "Pipeline complete. Evaluated {total} offers. {passing} passed (≥3.0), {failing} below threshold."
-       
-       Start now. No preamble, just evaluate sequentially.
-     ```
-   - Description: "career-ops sequential: automated evaluation pipeline"
+4. **Load evaluation context (inline — no subagent):**
+   - Read `modes/_shared-core.md` and `modes/_shared-scoring.md` into your active context
 
-5. **After completion:**
-   - Subagent will have updated `profiles/{profile}/batch/batch-state.tsv`, created reports, updated tracker
-   - Subagent runs `DATA_ROOT=profiles/{profile} node build-dashboard-data.mjs` and `node merge-tracker.mjs`
-   - Confirm to user: "Sequential pipeline complete. Dashboard is ready for viewing."
+5. **Execute directly in this session — for each unevaluated offer:**
+   - Read offer metadata from `profiles/{profile}/batch/batch-input.tsv` (id, url, source, notes) and `profiles/{profile}/batch/batch-state.tsv` (status, report_num)
+   - **Fetch JD:** Use Playwright or WebFetch to get the current job description text from the URL
+   - **Save JD:** Write to `profiles/{profile}/data/jds/{id}.txt`
+   - **Evaluate:** Apply blocks A-G scoring framework (role summary, CV match, level strategy, legitimacy) per `modes/_shared-scoring.md`
+   - **Generate report:** Write markdown report to `profiles/{profile}/reports/{report_num}-{company-slug}-{date}.md`
+   - **Update batch-state.tsv:** Set status='completed', completed_at=ISO8601, report_num, score
+   - **Log progress:** Output "Evaluated {id}: {company} - {role} ({score}/5.0)" after each offer
+
+   **Requirements:**
+   - Non-interactive: no questions, no pausing between offers
+   - Report format: blocks A-F + block G (Legitimacy: High Confidence / Proceed with Caution / Suspicious)
+   - On fetch failure: use cached `profiles/{profile}/data/jds/{id}.txt` if available; else set score=2.0 with error note
+
+6. **After all evaluations complete:**
+   - Run: `DATA_ROOT=profiles/{profile} node build-dashboard-data.mjs`
+   - Run: `DATA_ROOT=profiles/{profile} node merge-tracker.mjs`
+   - Sync to GCS: `node sync-to-gcs.mjs`
+   - Report: "Pipeline complete. Evaluated {total} offers. {passing} passed (≥3.5), {failing} below threshold. Dashboard ready."
